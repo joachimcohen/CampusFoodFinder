@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #ea580c;
+  --color-on-primary: #ffffff;
+  --color-secondary: #f97316;
+  --color-accent: #2563eb;
+  --color-background: #fff7ed;
+  --color-foreground: #0f172a;
+  --color-muted: #fdf4f0;
+  --color-border: #fceae1;
+  --color-destructive: #dc2626;
+  --color-ring: #ea580c;
+
+  --color-food-free: #16a34a;
+  --color-food-discounted: #f97316;
+  --color-food-special: #9333ea;
+  --color-food-recurring: #2563eb;
+  --color-food-oneoff: #e11d48;
+
+  --color-status-active: #16a34a;
+  --color-status-expired: #94a3b8;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-on-primary: var(--color-on-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-muted: var(--color-muted);
+  --color-border: var(--color-border);
+  --color-destructive: var(--color-destructive);
+  --color-ring: var(--color-ring);
+
+  --color-food-free: var(--color-food-free);
+  --color-food-discounted: var(--color-food-discounted);
+  --color-food-special: var(--color-food-special);
+  --color-food-recurring: var(--color-food-recurring);
+  --color-food-oneoff: var(--color-food-oneoff);
+
+  --color-status-active: var(--color-status-active);
+  --color-status-expired: var(--color-status-expired);
+}
+
+/* Light-mode-first by design (Section 7) — no dark theme in v1 scope */
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
