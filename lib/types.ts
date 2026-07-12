@@ -81,16 +81,16 @@ export const FOOD_TYPE_COLORS: Record<FoodType, string> = {
 };
 
 // Badge backgrounds need white text at ~12px to hit the 4.5:1 contrast ratio
-// design-system/MASTER.md commits to. free_giveaway/discounted at their base
-// hue measure ~3.3:1 / ~2.8:1 (fail); these darker variants measure ~5:1+.
-// The base FOOD_TYPE_COLORS stay unchanged for icons/tints, which aren't
-// held to text-contrast rules.
+// design-system/MASTER.md commits to. The base FOOD_TYPE_COLORS (a light
+// teal-to-purple gradient used for icons/tints) don't clear that on their
+// own, so every food type has a darkened badge-safe variant, all computed
+// and verified at >=4.5:1 — see design-system/MASTER.md for the numbers.
 export const FOOD_TYPE_BADGE_COLORS: Record<FoodType, string> = {
   free_giveaway: "var(--color-food-free-badge)",
   discounted: "var(--color-food-discounted-badge)",
-  daily_special: "var(--color-food-special)",
-  recurring_event: "var(--color-food-recurring)",
-  one_off_event: "var(--color-food-oneoff)",
+  daily_special: "var(--color-food-special-badge)",
+  recurring_event: "var(--color-food-recurring-badge)",
+  one_off_event: "var(--color-food-oneoff-badge)",
 };
 
 export const WEEKDAYS: Weekday[] = [

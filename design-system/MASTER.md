@@ -32,6 +32,15 @@ suggestions aren't a hard override either when they conflict with the product's 
 Colour palette, key effects, anti-patterns, and the accessibility checklist below are taken
 directly from the tool's Food Delivery output.
 
+### Rebrand (v2)
+
+The client supplied an explicit brand palette and typeface after the initial build, which
+supersedes the tool-generated colours/type below: **white background, teal `#62C7CE` and
+purple `#922580` doing all the colour work, Poppins typography**. The layout pattern (Filter-
+Heavy Grid) and structural decisions above are unaffected — this is a colour/type reskin, not
+a re-architecture. See the "Colours" and "Typography" sections below for the current values;
+the tool-generated originals are struck through history in git if ever needed again.
+
 ---
 
 ## Pattern
@@ -45,56 +54,65 @@ directly from the tool's Food Delivery output.
 
 ## Colours
 
-Sourced from the Food Delivery palette match — "Appetizing orange + trust blue".
+**v2 brand palette** — white background, teal + purple doing all the colour work (client
+brief). Purple carries every solid-background/white-text surface (buttons, active chips,
+focus ring) because raw teal only measures ~2:1 contrast against white text — far below the
+4.5:1 minimum in the checklist below — so it's unusable there. Teal instead drives tints,
+icons, and secondary surfaces where that rule doesn't apply. A darkened teal (`#2A8187`,
+4.6:1) fills the one spot that still needs teal-with-white-text (the secondary "food type"
+filter chips' active state).
 
 | Role | Hex | CSS Variable | Usage |
 |---|---|---|---|
-| Primary | `#EA580C` | `--color-primary` | Primary buttons, active filter chip, links |
+| Primary | `#922580` | `--color-primary` | Primary buttons, active campus chip, links, focus ring |
+| Primary (hover) | `#7A1F6B` | `--color-primary-hover` | Hover/pressed state for primary actions |
 | On Primary | `#FFFFFF` | `--color-on-primary` | Text/icons on primary surfaces |
-| Secondary | `#F97316` | `--color-secondary` | Secondary accents, hover states |
-| Accent/CTA | `#2563EB` | `--color-accent` | "Add listing" CTA, admin/vendor action buttons |
-| Background | `#FFF7ED` | `--color-background` | App background |
-| Foreground | `#0F172A` | `--color-foreground` | Body text |
-| Muted | `#FDF4F0` | `--color-muted` | Card backgrounds, inactive chip fill |
-| Border | `#FCEAE1` | `--color-border` | Card/chip borders |
-| Destructive | `#DC2626` | `--color-destructive` | Delete/deactivate actions, lockout warnings |
-| Ring | `#EA580C` | `--color-ring` | Focus ring |
+| Secondary (brand teal) | `#62C7CE` | `--color-secondary` | Tints, icons, decorative accents — not for white text |
+| Accent (dark teal) | `#2A8187` | `--color-accent` | Active "food type" chip, secondary CTAs needing white text |
+| Background | `#FFFFFF` | `--color-background` | App background |
+| Foreground | `#1A1A1A` | `--color-foreground` | Body text |
+| Muted | `#EFF9FA` | `--color-muted` | Card icon backgrounds, inactive chip fill (light teal tint) |
+| Border | `#ECE4EA` | `--color-border` | Card/chip borders — kept quiet/neutral so it doesn't compete with badges |
+| Destructive | `#DC2626` | `--color-destructive` | Delete/deactivate actions, lockout warnings — universal red, not brand-colour territory |
+| Ring | `#922580` | `--color-ring` | Focus ring |
 
 ### Food-type badge colours (Section 7 requirement — colour-coded by category)
 
-| Food type | Colour | Icon/tint hex | Badge background (white text) |
-|---|---|---|---|
-| Free Giveaway | Green | `#16A34A` | `#15803D` |
-| Discounted | Orange | `#F97316` | `#C2410C` |
-| Daily Special | Purple | `#9333EA` | `#9333EA` |
-| Recurring Event | Blue | `#2563EB` | `#2563EB` |
-| One-off Event | Pink/Red | `#E11D48` | `#E11D48` |
+Since the brief asks for teal and purple to do *all* the colour work, the five badges are a
+computed 5-stop gradient interpolated in HSL space between the brand teal (184° hue) and
+brand purple (310° hue) — rather than the previous unrelated green/orange/purple/blue/pink
+set. This trades away the "green = free, discount = orange" convention some users read
+instinctively, in exchange for the requested two-tone brand consistency. Each badge stop was
+individually darkened only as far as needed to clear 4.5:1 contrast with white text (computed,
+not eyeballed):
 
-Free Giveaway and Discounted needed a darker badge-only variant: at their base hue,
-white text on the pill measures ~3.3:1 and ~2.8:1 respectively — both fail the 4.5:1
-minimum in the checklist below. The darker variants measure ~5.0:1 and ~5.2:1. The base
-hue is unchanged for icons/tints elsewhere, which aren't held to text-contrast rules.
+| Food type | Icon/tint hex (lighter) | Badge background (white text) | Contrast |
+|---|---|---|---|
+| Free Giveaway | `#5CC5CC` | `#2A8187` | 4.60:1 |
+| Discounted | `#5A89CE` | `#3D75C5` | 4.61:1 |
+| Daily Special | `#6658D0` | `#4536BE` | 8.34:1 |
+| Recurring Event | `#A556D2` | `#7C2DA8` | 7.51:1 |
+| One-off Event | `#D454BF` | `#922580` | 7.50:1 (exact brand purple) |
 
 ## Typography
 
-- **Family (single):** Plus Jakarta Sans — heading and body, per override #2 above
+- **Family (single):** Poppins — heading and body, per client brief ("rounded, friendly")
 - **Weight scale:** ExtraBold 800 for the app title, Bold 700 for section headers ("Happening
   Now" / "Weekly & Recurring"), SemiBold 600 for card titles/vendor names and buttons, Regular
   400 for body copy (line-height 1.4–1.5)
-- **Google Fonts import:**
-  ```css
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-  ```
-- **Tailwind:** `fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }`
+- **Loaded via `next/font/google`** (`app/layout.tsx`) rather than a CSS `@import`, so it's
+  self-hosted/optimised by Next.js instead of fetched from Google Fonts at runtime.
+- **Tailwind:** `fontFamily: { sans: ['Poppins', 'sans-serif'] }` (applied via the `--font-sans`
+  variable next/font injects)
 
 ## Vendor & Admin screens (Booking & Appointment secondary reference)
 
 Vendor PIN entry and the admin dashboard borrow the **Booking & Appointment** category's
 palette logic for status/state colours, since those screens are about managing state
-(active/expired/locked) rather than appetite appeal:
+(active/expired/locked) rather than appetite appeal — remapped to the v2 brand palette:
 
-- Trust blue (`--color-accent` `#2563EB`) — primary actions (save, add vendor)
-- Available/active green (`#16A34A`) — active listing / unlocked state
+- Purple (`--color-primary` `#922580`) — primary actions (save, add vendor, sign in)
+- Active/unlocked state — dark teal (`--color-status-active` `#2A8187`)
 - Booked/expired grey (`#94A3B8`) — expired or inactive listing
 - Confirm accent — reuse `--color-primary` for confirmation actions
 
