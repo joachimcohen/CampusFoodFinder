@@ -1,34 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #ea580c;
+  /* Brand rebrand: white + teal (#62C7CE) + purple (#922580) "doing all the
+     color work". Purple carries solid-background/white-text UI (buttons,
+     active chips, focus ring) since raw teal only measures ~2:1 contrast
+     against white text — too low to use the same way. Teal is used for
+     tints, icons, and secondary surfaces instead. See design-system/MASTER.md
+     for the full rationale and computed contrast ratios. */
+  --color-primary: #922580;
+  --color-primary-hover: #7a1f6b;
   --color-on-primary: #ffffff;
-  --color-secondary: #f97316;
-  --color-accent: #2563eb;
-  --color-background: #fff7ed;
-  --color-foreground: #0f172a;
-  --color-muted: #fdf4f0;
-  --color-border: #fceae1;
-  --color-destructive: #dc2626;
-  --color-ring: #ea580c;
+  --color-secondary: #62c7ce;
+  --color-accent: #2a8187; /* darkened teal — the only shade of teal that clears 4.5:1 with white text */
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-muted: #eff9fa; /* light teal tint */
+  --color-border: #ece4ea; /* faint neutral-lavender, kept quiet so it doesn't compete with badges/chips */
+  --color-destructive: #dc2626; /* kept as universal red — delete/error states aren't brand-color territory */
+  --color-ring: #922580;
 
-  --color-food-free: #16a34a;
-  --color-food-discounted: #f97316;
-  --color-food-special: #9333ea;
-  --color-food-recurring: #2563eb;
-  --color-food-oneoff: #e11d48;
+  /* Food-type badges: a 5-stop gradient interpolated between the brand teal
+     (184° hue) and brand purple (310° hue) in HSL space, each darkened only
+     as far as needed to clear 4.5:1 contrast with white text. */
+  --color-food-free: #5cc5cc;
+  --color-food-discounted: #5a89ce;
+  --color-food-special: #6658d0;
+  --color-food-recurring: #a556d2;
+  --color-food-oneoff: #d454bf;
 
-  /* Darker variants for badge backgrounds only — the base hues above measure
-     ~3.3:1 and ~2.8:1 against white text (fails 4.5:1); these measure ~5:1+. */
-  --color-food-free-badge: #15803d;
-  --color-food-discounted-badge: #c2410c;
+  --color-food-free-badge: #2a8187; /* 4.60:1 */
+  --color-food-discounted-badge: #3d75c5; /* 4.61:1 */
+  --color-food-special-badge: #4536be; /* 8.34:1 */
+  --color-food-recurring-badge: #7c2da8; /* 7.51:1 */
+  --color-food-oneoff-badge: #922580; /* 7.50:1 — exact brand purple */
 
-  --color-status-active: #16a34a;
+  --color-status-active: #2a8187;
   --color-status-expired: #94a3b8;
 }
 
 @theme inline {
   --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
   --color-on-primary: var(--color-on-primary);
   --color-secondary: var(--color-secondary);
   --color-accent: var(--color-accent);
@@ -47,6 +59,9 @@
 
   --color-food-free-badge: var(--color-food-free-badge);
   --color-food-discounted-badge: var(--color-food-discounted-badge);
+  --color-food-special-badge: var(--color-food-special-badge);
+  --color-food-recurring-badge: var(--color-food-recurring-badge);
+  --color-food-oneoff-badge: var(--color-food-oneoff-badge);
 
   --color-status-active: var(--color-status-active);
   --color-status-expired: var(--color-status-expired);
