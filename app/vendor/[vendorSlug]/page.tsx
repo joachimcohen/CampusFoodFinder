@@ -167,7 +167,7 @@ export default function VendorPage({ params }: Props) {
             maxLength={6}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-            placeholder="••••••"
+            placeholder="Enter PIN"
             className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-3 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
             autoFocus
           />

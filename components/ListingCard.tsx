@@ -28,7 +28,7 @@ export default function ListingCard({
   const isUrgent = mode === "happening-now" && timeLabel.includes("min") && !timeLabel.includes("Today");
 
   return (
-    <article className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-3 shadow-sm">
+    <article className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)]/40 hover:shadow-md">
       <div
         className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl"
         style={{ backgroundColor: `color-mix(in srgb, ${FOOD_TYPE_COLORS[listing.food_type]} 15%, white)` }}
@@ -54,7 +54,7 @@ export default function ListingCard({
           </span>
         </div>
         <h3 className="truncate font-semibold leading-tight">{listing.title}</h3>
-        <p className="truncate text-sm text-[var(--color-foreground)]/60">
+        <p className="line-clamp-2 text-sm leading-snug text-[var(--color-foreground)]/60">
           {listing.vendor.name} · {listing.campus.name}
         </p>
         {timeLabel && (

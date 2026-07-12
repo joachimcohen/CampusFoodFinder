@@ -62,13 +62,18 @@ Sourced from the Food Delivery palette match — "Appetizing orange + trust blue
 
 ### Food-type badge colours (Section 7 requirement — colour-coded by category)
 
-| Food type | Colour | Hex |
-|---|---|---|
-| Free Giveaway | Green | `#16A34A` |
-| Discounted | Orange | `#F97316` |
-| Daily Special | Purple | `#9333EA` |
-| Recurring Event | Blue | `#2563EB` |
-| One-off Event | Pink/Red | `#E11D48` |
+| Food type | Colour | Icon/tint hex | Badge background (white text) |
+|---|---|---|---|
+| Free Giveaway | Green | `#16A34A` | `#15803D` |
+| Discounted | Orange | `#F97316` | `#C2410C` |
+| Daily Special | Purple | `#9333EA` | `#9333EA` |
+| Recurring Event | Blue | `#2563EB` | `#2563EB` |
+| One-off Event | Pink/Red | `#E11D48` | `#E11D48` |
+
+Free Giveaway and Discounted needed a darker badge-only variant: at their base hue,
+white text on the pill measures ~3.3:1 and ~2.8:1 respectively — both fail the 4.5:1
+minimum in the checklist below. The darker variants measure ~5.0:1 and ~5.2:1. The base
+hue is unchanged for icons/tints elsewhere, which aren't held to text-contrast rules.
 
 ## Typography
 

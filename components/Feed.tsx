@@ -59,14 +59,14 @@ export default function Feed({
   return (
     <div className="min-h-dvh pb-12">
       <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur">
-        <div className="mx-auto max-w-2xl px-4 pt-5">
+        <div className="mx-auto max-w-2xl px-4 pt-5 md:max-w-4xl xl:max-w-6xl">
           <h1 className="text-2xl font-extrabold text-[var(--color-foreground)]">Campus Food Finder</h1>
           <p className="mb-3 text-sm text-[var(--color-foreground)]/60">
             Free, discounted &amp; special food on campus — right now.
           </p>
         </div>
 
-        <div className="mx-auto max-w-2xl overflow-x-auto px-4 pb-3">
+        <div className="mx-auto max-w-2xl overflow-x-auto px-4 pb-3 [mask-image:linear-gradient(to_right,black_92%,transparent)] md:max-w-4xl xl:max-w-6xl">
           <div className="flex w-max gap-2">
             <Chip active={campusSlug === "all"} onClick={() => setCampusSlug("all")}>
               All campuses
@@ -79,7 +79,7 @@ export default function Feed({
           </div>
         </div>
 
-        <div className="mx-auto max-w-2xl overflow-x-auto px-4 pb-3">
+        <div className="mx-auto max-w-2xl overflow-x-auto px-4 pb-3 [mask-image:linear-gradient(to_right,black_92%,transparent)] md:max-w-4xl xl:max-w-6xl">
           <div className="flex w-max gap-2">
             <Chip active={foodType === "all"} onClick={() => setFoodType("all")} variant="secondary">
               All types
@@ -98,7 +98,7 @@ export default function Feed({
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 pt-4">
+      <main className="mx-auto max-w-2xl px-4 pt-4 md:max-w-4xl xl:max-w-6xl">
         {isEmpty ? (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--color-border)] py-16 text-center">
             <p className="text-lg font-semibold">No food on offer right now</p>
@@ -109,7 +109,7 @@ export default function Feed({
             {happeningNow.length > 0 && (
               <section className="mb-8">
                 <h2 className="mb-3 text-lg font-bold">Happening Now</h2>
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {happeningNow.map((l) => (
                     <ListingCard key={l.id} listing={l} mode="happening-now" />
                   ))}
@@ -120,7 +120,7 @@ export default function Feed({
             {weeklyRecurring.length > 0 && (
               <section>
                 <h2 className="mb-3 text-lg font-bold">Weekly &amp; Recurring</h2>
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {weeklyRecurring.map((l) => (
                     <ListingCard key={l.id} listing={l} mode="weekly" />
                   ))}
