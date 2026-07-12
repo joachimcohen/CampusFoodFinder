@@ -15,11 +15,19 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const { data: vendor } = await supabase
+  const { data: vendor, error: fetchError } = await supabase
     .from("vendors")
     .select("id, pin_hash, failed_attempts, locked_until, is_active")
     .eq("slug", slug)
     .maybeSingle();
+
+  if (fetchError) {
+    // Surfaces mis-configured SUPABASE_SERVICE_ROLE_KEY (e.g. anon key pasted by
+    // mistake, which can't read pin_hash) in Vercel's function logs instead of
+    // silently presenting as a wrong PIN.
+    console.error("vendor login: failed to fetch vendor", fetchError);
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
 
   if (!vendor || !vendor.is_active) {
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
