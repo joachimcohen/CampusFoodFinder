@@ -16,6 +16,14 @@ export type Weekday =
   | "saturday"
   | "sunday";
 
+export type DietaryTag =
+  | "vegetarian"
+  | "vegan"
+  | "gluten_free"
+  | "dairy_free"
+  | "halal"
+  | "kosher";
+
 export interface Campus {
   id: string;
   name: string;
@@ -28,6 +36,7 @@ export interface Vendor {
   campus_id: string;
   name: string;
   slug: string;
+  location: string | null;
   pin_hash: string;
   failed_attempts: number;
   locked_until: string | null;
@@ -54,15 +63,34 @@ export interface Listing {
   recurrence_time_start: string | null;
   recurrence_time_end: string | null;
   recurrence_valid_until: string | null;
+  dietary_tags: DietaryTag[] | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface ListingWithRelations extends Listing {
-  vendor: Pick<Vendor, "id" | "name" | "slug">;
+  vendor: Pick<Vendor, "id" | "name" | "slug" | "location">;
   campus: Pick<Campus, "id" | "name" | "slug">;
 }
+
+export const DIETARY_TAG_LABELS: Record<DietaryTag, string> = {
+  vegetarian: "Vegetarian",
+  vegan: "Vegan",
+  gluten_free: "Gluten Free",
+  dairy_free: "Dairy Free",
+  halal: "Halal",
+  kosher: "Kosher",
+};
+
+export const DIETARY_TAGS: DietaryTag[] = [
+  "vegetarian",
+  "vegan",
+  "gluten_free",
+  "dairy_free",
+  "halal",
+  "kosher",
+];
 
 export const FOOD_TYPE_LABELS: Record<FoodType, string> = {
   free_giveaway: "Free Giveaway",

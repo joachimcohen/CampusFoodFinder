@@ -1,5 +1,5 @@
-import type { FoodType, ScheduleType, Weekday } from "@/lib/types";
-import { WEEKDAYS } from "@/lib/types";
+import type { DietaryTag, FoodType, ScheduleType, Weekday } from "@/lib/types";
+import { DIETARY_TAGS, WEEKDAYS } from "@/lib/types";
 
 const FOOD_TYPES: FoodType[] = [
   "free_giveaway",
@@ -23,6 +23,7 @@ export interface ListingInput {
   recurrence_time_start: string | null;
   recurrence_time_end: string | null;
   recurrence_valid_until: string | null;
+  dietary_tags: DietaryTag[] | null;
 }
 
 /** Validates a raw listing payload from the client. Returns an error string, or null if valid. */
@@ -79,6 +80,14 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
     recurrence_valid_until = typeof b.recurrence_valid_until === "string" ? b.recurrence_valid_until : null;
   }
 
+  let dietary_tags: DietaryTag[] | null = null;
+  if (b.dietary_tags !== undefined && b.dietary_tags !== null) {
+    if (!Array.isArray(b.dietary_tags) || !b.dietary_tags.every((t) => DIETARY_TAGS.includes(t as DietaryTag))) {
+      return { error: "Invalid dietary tag selected." };
+    }
+    dietary_tags = b.dietary_tags.length > 0 ? (b.dietary_tags as DietaryTag[]) : null;
+  }
+
   return {
     input: {
       food_type: b.food_type as FoodType,
@@ -93,6 +102,7 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       recurrence_time_start,
       recurrence_time_end,
       recurrence_valid_until,
+      dietary_tags,
     },
   };
 }

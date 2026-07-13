@@ -125,6 +125,7 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
   const router = useRouter();
   const [name, setName] = useState("");
   const [campusId, setCampusId] = useState(campuses[0]?.id ?? "");
+  const [location, setLocation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [revealedPin, setRevealedPin] = useState<RevealedPin | null>(null);
@@ -139,7 +140,7 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
     const res = await fetch("/api/admin/vendors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), campus_id: campusId }),
+      body: JSON.stringify({ name: name.trim(), campus_id: campusId, location: location.trim() || null }),
     });
     const body = await res.json();
     setSaving(false);
@@ -149,6 +150,7 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
     }
     setRevealedPin({ vendorName: name.trim(), pin: body.pin });
     setName("");
+    setLocation("");
     router.refresh();
   }
 
@@ -175,6 +177,14 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
     if (note === null) return;
     const supabase = createClient();
     await supabase.from("vendors").update({ contact_note: note }).eq("id", id);
+    router.refresh();
+  }
+
+  async function saveLocation(id: string, currentLocation: string | null) {
+    const value = prompt("Location on campus (shown publicly on the feed):", currentLocation ?? "");
+    if (value === null) return;
+    const supabase = createClient();
+    await supabase.from("vendors").update({ location: value.trim() || null }).eq("id", id);
     router.refresh();
   }
 
@@ -212,6 +222,12 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
             </option>
           ))}
         </select>
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Location on campus (optional, e.g. Building 4, Level 2)"
+          className="min-h-11 flex-1 rounded-lg border border-[var(--color-border)] bg-white px-3"
+        />
         <button
           type="submit"
           disabled={saving}
@@ -233,6 +249,7 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
                     {v.name}{" "}
                     <span className="text-xs font-normal text-[var(--color-foreground)]/50">
                       /vendor/{v.slug} · {campusName(v.campus_id)}
+                      {v.location ? ` · ${v.location}` : ""}
                     </span>
                   </p>
                   <p className="text-xs text-[var(--color-foreground)]/60">
@@ -253,6 +270,12 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
                     className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
                   >
                     Reset PIN
+                  </button>
+                  <button
+                    onClick={() => saveLocation(v.id, v.location)}
+                    className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
+                  >
+                    Edit location
                   </button>
                   <button
                     onClick={() => saveContactNote(v.id, v.contact_note)}

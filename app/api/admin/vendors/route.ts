@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const campus_id = typeof body?.campus_id === "string" ? body.campus_id : "";
+  const location = typeof body?.location === "string" && body.location.trim() ? body.location.trim() : null;
   if (!name || !campus_id) {
     return NextResponse.json({ error: "Vendor name and campus are required." }, { status: 400 });
   }
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
     const slug = attempt === 0 ? baseSlug : `${baseSlug}-${Math.floor(Math.random() * 1000)}`;
     const { data, error } = await admin.supabase
       .from("vendors")
-      .insert({ name, campus_id, slug, pin_hash })
-      .select("id, name, slug, campus_id, is_active, created_at")
+      .insert({ name, campus_id, slug, location, pin_hash })
+      .select("id, name, slug, campus_id, location, is_active, created_at")
       .single();
 
     if (!error) return NextResponse.json({ vendor: data, pin }, { status: 201 });
