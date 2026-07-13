@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import type { FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
-import { FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
+import type { DietaryTag, FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
+import { DIETARY_TAGS, DIETARY_TAG_LABELS, FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
 
 type Props = { params: Promise<{ vendorSlug: string }> };
 
@@ -20,6 +20,7 @@ const emptyForm = {
   recurrence_time_start: "",
   recurrence_time_end: "",
   recurrence_valid_until: "",
+  dietary_tags: [] as DietaryTag[],
 };
 
 export default function VendorPage({ params }: Props) {
@@ -81,6 +82,15 @@ export default function VendorPage({ params }: Props) {
     }));
   }
 
+  function toggleDietaryTag(tag: DietaryTag) {
+    setForm((f) => ({
+      ...f,
+      dietary_tags: f.dietary_tags.includes(tag)
+        ? f.dietary_tags.filter((t) => t !== tag)
+        : [...f.dietary_tags, tag],
+    }));
+  }
+
   async function submitListing(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -114,6 +124,7 @@ export default function VendorPage({ params }: Props) {
       recurrence_time_end: form.schedule_type === "recurring" ? form.recurrence_time_end : null,
       recurrence_valid_until:
         form.schedule_type === "recurring" && form.recurrence_valid_until ? form.recurrence_valid_until : null,
+      dietary_tags: form.dietary_tags.length > 0 ? form.dietary_tags : null,
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -253,6 +264,26 @@ export default function VendorPage({ params }: Props) {
             onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
           />
         </label>
+
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Dietary options (optional)</span>
+          <div className="flex flex-wrap gap-2">
+            {DIETARY_TAGS.map((tag) => (
+              <button
+                type="button"
+                key={tag}
+                onClick={() => toggleDietaryTag(tag)}
+                className={`min-h-11 rounded-full border px-3 text-sm ${
+                  form.dietary_tags.includes(tag)
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+                    : "border-[var(--color-border)] bg-white"
+                }`}
+              >
+                {DIETARY_TAG_LABELS[tag]}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex gap-4 text-sm font-medium">
           <label className="flex items-center gap-2">

@@ -140,6 +140,11 @@ export default function Feed({
             )}
           </>
         )}
+
+        <p className="mt-10 text-center text-xs text-[var(--color-foreground)]/50">
+          Please note some of the specials on this page may have sold out by the time you arrive,
+          however every effort is made by vendors to remove the specials as soon as sold out!
+        </p>
       </main>
     </div>
   );

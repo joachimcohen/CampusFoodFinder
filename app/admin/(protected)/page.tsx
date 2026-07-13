@@ -8,7 +8,7 @@ export const revalidate = 0;
 // bundle for the (client-side) AdminDashboard component, and a vendor's
 // bcrypt hash has no reason to ever reach the browser.
 const VENDOR_ADMIN_COLUMNS =
-  "id, campus_id, name, slug, failed_attempts, locked_until, contact_note, is_active, created_at";
+  "id, campus_id, name, slug, location, failed_attempts, locked_until, contact_note, is_active, created_at";
 
 export default async function AdminPage() {
   const supabase = await createClient();

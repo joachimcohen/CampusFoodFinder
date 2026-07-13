@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Gift, Percent, Star, Repeat, PartyPopper } from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
-import { FOOD_TYPE_COLORS } from "@/lib/types";
+import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
 import { formatPrice, getRecurrenceScheduleLabel, getTimeRemainingLabel } from "@/lib/listings";
 
@@ -56,6 +56,7 @@ export default function ListingCard({
         <h3 className="truncate font-semibold leading-tight">{listing.title}</h3>
         <p className="line-clamp-2 text-sm leading-snug text-[var(--color-foreground)]/60">
           {listing.vendor.name} · {listing.campus.name}
+          {listing.vendor.location ? ` · ${listing.vendor.location}` : ""}
         </p>
         {timeLabel && (
           <p
@@ -65,6 +66,18 @@ export default function ListingCard({
           >
             {timeLabel}
           </p>
+        )}
+        {listing.dietary_tags && listing.dietary_tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {listing.dietary_tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-foreground)]/70"
+              >
+                {DIETARY_TAG_LABELS[tag]}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </article>

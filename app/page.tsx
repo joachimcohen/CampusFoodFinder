@@ -11,7 +11,7 @@ export default async function HomePage() {
     supabase.from("campuses").select("id,name,slug,created_at").order("name"),
     supabase
       .from("listings")
-      .select("*, vendor:vendors!inner(id,name,slug), campus:campuses!inner(id,name,slug)")
+      .select("*, vendor:vendors!inner(id,name,slug,location), campus:campuses!inner(id,name,slug)")
       .order("created_at", { ascending: false }),
   ]);
 
