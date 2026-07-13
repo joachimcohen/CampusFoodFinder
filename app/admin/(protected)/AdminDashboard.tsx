@@ -160,6 +160,21 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
     router.refresh();
   }
 
+  async function deleteVendor(id: string, vendorName: string) {
+    if (
+      !confirm(
+        `Permanently delete ${vendorName}? This also permanently deletes all of their listings ` +
+          `(active and expired) — this can't be undone. Consider "Disable" instead if you just want ` +
+          `to hide them without losing history.`
+      )
+    )
+      return;
+    const supabase = createClient();
+    const { error } = await supabase.from("vendors").delete().eq("id", id);
+    if (error) alert(error.message);
+    router.refresh();
+  }
+
   async function resetPin(id: string, vendorName: string) {
     if (!confirm(`Generate a new PIN for ${vendorName}? Their current PIN will stop working.`)) return;
     const res = await fetch(`/api/admin/vendors/${id}/reset-pin`, { method: "POST" });
@@ -282,6 +297,12 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
                     className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
                   >
                     Edit note
+                  </button>
+                  <button
+                    onClick={() => deleteVendor(v.id, v.name)}
+                    className="min-h-11 rounded-lg border border-[var(--color-destructive)] px-3 text-sm font-medium text-[var(--color-destructive)]"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>
