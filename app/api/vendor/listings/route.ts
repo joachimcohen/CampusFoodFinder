@@ -27,11 +27,16 @@ export async function POST(req: NextRequest) {
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
 
   const supabase = createAdminClient();
-  const { data: vendor } = await supabase
+  const { data: vendor, error: fetchError } = await supabase
     .from("vendors")
     .select("campus_id, is_active")
     .eq("id", vendorId)
     .maybeSingle();
+
+  if (fetchError) {
+    console.error("vendor listing create: failed to fetch vendor", fetchError);
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
 
   if (!vendor || !vendor.is_active) {
     return NextResponse.json({ error: "Vendor account is inactive." }, { status: 403 });
