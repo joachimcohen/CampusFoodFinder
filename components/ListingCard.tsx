@@ -26,6 +26,9 @@ export default function ListingCard({
   const timeLabel =
     mode === "happening-now" ? getTimeRemainingLabel(listing) : getRecurrenceScheduleLabel(listing);
   const isUrgent = mode === "happening-now" && timeLabel.includes("min") && !timeLabel.includes("Today");
+  // A listing's own pickup location (for vendors without a fixed spot) takes
+  // priority over the vendor's general location when set.
+  const locationLabel = listing.pickup_location ?? listing.vendor.location;
 
   return (
     <article className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)]/40 hover:shadow-md">
@@ -56,7 +59,7 @@ export default function ListingCard({
         <h3 className="truncate font-semibold leading-tight">{listing.title}</h3>
         <p className="line-clamp-2 text-sm leading-snug text-[var(--color-foreground)]/60">
           {listing.vendor.name} · {listing.campus.name}
-          {listing.vendor.location ? ` · ${listing.vendor.location}` : ""}
+          {locationLabel ? ` · ${locationLabel}` : ""}
         </p>
         {timeLabel && (
           <p

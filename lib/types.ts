@@ -55,6 +55,7 @@ export interface Listing {
   schedule_type: ScheduleType;
   title: string;
   description: string | null;
+  pickup_location: string | null;
   price: number | null;
   photo_url: string | null;
   starts_at: string | null;

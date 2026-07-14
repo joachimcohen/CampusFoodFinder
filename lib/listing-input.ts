@@ -15,6 +15,7 @@ export interface ListingInput {
   schedule_type: ScheduleType;
   title: string;
   description: string | null;
+  pickup_location: string | null;
   price: number | null;
   photo_url: string | null;
   starts_at: string | null;
@@ -94,6 +95,8 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       schedule_type: scheduleType,
       title: b.title.trim(),
       description: typeof b.description === "string" && b.description.trim() ? b.description.trim() : null,
+      pickup_location:
+        typeof b.pickup_location === "string" && b.pickup_location.trim() ? b.pickup_location.trim() : null,
       price,
       photo_url: typeof b.photo_url === "string" && b.photo_url ? b.photo_url : null,
       starts_at,

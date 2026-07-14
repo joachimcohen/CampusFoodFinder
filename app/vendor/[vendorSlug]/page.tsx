@@ -13,6 +13,7 @@ const emptyForm = {
   schedule_type: "one_time" as ScheduleType,
   title: "",
   description: "",
+  pickup_location: "",
   price: "",
   starts_at: "",
   expires_at: "",
@@ -115,6 +116,7 @@ export default function VendorPage({ params }: Props) {
       schedule_type: form.schedule_type,
       title: form.title,
       description: form.description || null,
+      pickup_location: form.pickup_location || null,
       price: form.price === "" ? null : Number(form.price),
       photo_url,
       starts_at: form.schedule_type === "one_time" ? new Date(form.starts_at).toISOString() : null,
@@ -224,6 +226,17 @@ export default function VendorPage({ params }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
             rows={2}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Pickup location / instructions (optional)
+          <textarea
+            value={form.pickup_location}
+            onChange={(e) => setForm((f) => ({ ...f, pickup_location: e.target.value }))}
+            className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+            rows={2}
+            placeholder="e.g. Meet at the Student Union entrance — if you don't have a fixed spot"
           />
         </label>
 
