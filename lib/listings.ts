@@ -1,5 +1,6 @@
 import type { ListingWithRelations, Weekday } from "./types";
 import { WEEKDAYS } from "./types";
+import { getMelbourneParts } from "./melbourne-time";
 
 function weekdayIndex(day: Weekday): number {
   return WEEKDAYS.indexOf(day);
@@ -10,10 +11,6 @@ function timeStringToMinutes(time: string): number {
   return h * 60 + m;
 }
 
-function minutesSinceMidnight(date: Date): number {
-  return date.getHours() * 60 + date.getMinutes();
-}
-
 /** Recurring listings still "in scope" — not past their optional end date. */
 export function isRecurringInScope(
   listing: ListingWithRelations,
@@ -22,7 +19,7 @@ export function isRecurringInScope(
   if (listing.schedule_type !== "recurring") return false;
   if (!listing.is_active) return false;
   if (!listing.recurrence_valid_until) return true;
-  const today = now.toISOString().slice(0, 10);
+  const today = getMelbourneParts(now).dateStr;
   return listing.recurrence_valid_until >= today;
 }
 
@@ -45,10 +42,9 @@ export function isHappeningNow(
     return false;
   }
 
-  const today = WEEKDAYS[now.getDay() === 0 ? 6 : now.getDay() - 1];
+  const { weekday: today, minutesSinceMidnight: nowMinutes } = getMelbourneParts(now);
   if (!listing.recurrence_days.includes(today)) return false;
 
-  const nowMinutes = minutesSinceMidnight(now);
   const startMinutes = timeStringToMinutes(listing.recurrence_time_start);
   const endMinutes = timeStringToMinutes(listing.recurrence_time_end);
   return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
@@ -62,7 +58,7 @@ function minutesRemaining(listing: ListingWithRelations, now: Date): number | nu
   }
   if (!listing.recurrence_time_end) return null;
   const endMinutes = timeStringToMinutes(listing.recurrence_time_end);
-  return endMinutes - minutesSinceMidnight(now);
+  return endMinutes - getMelbourneParts(now).minutesSinceMidnight;
 }
 
 /** Minutes until a recurring listing's *next* occurrence begins (0 if active now). */
@@ -76,9 +72,9 @@ function minutesUntilNextOccurrence(listing: ListingWithRelations, now: Date): n
   }
   if (isHappeningNow(listing, now)) return 0;
 
-  const nowDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const { weekday: today, minutesSinceMidnight: nowMinutes } = getMelbourneParts(now);
+  const nowDayIdx = weekdayIndex(today);
   const startMinutes = timeStringToMinutes(listing.recurrence_time_start);
-  const nowMinutes = minutesSinceMidnight(now);
 
   let best = Infinity;
   for (const day of listing.recurrence_days) {
