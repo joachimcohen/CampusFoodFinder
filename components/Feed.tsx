@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { Campus, FoodType, ListingWithRelations } from "@/lib/types";
 import { FOOD_TYPE_LABELS } from "@/lib/types";
@@ -70,21 +69,11 @@ export default function Feed({
   return (
     <div className="min-h-dvh pb-12">
       <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 pt-5 md:max-w-4xl xl:max-w-6xl">
-          <Image
-            src="/branding/logo-food-finder.jpg"
-            alt=""
-            width={48}
-            height={48}
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
-            priority
-          />
-          <div>
-            <h1 className="text-2xl font-extrabold text-[var(--color-foreground)]">Campus Food Finder</h1>
-            <p className="mb-3 text-sm text-[var(--color-foreground)]/60">
-              Free, discounted &amp; special food on campus — right now.
-            </p>
-          </div>
+        <div className="mx-auto max-w-2xl px-4 pt-5 md:max-w-4xl xl:max-w-6xl">
+          <h1 className="text-2xl font-extrabold text-[var(--color-foreground)]">Campus Food Finder</h1>
+          <p className="mb-3 text-sm text-[var(--color-foreground)]/60">
+            Free, discounted &amp; special food on campus — right now.
+          </p>
         </div>
 
         <div className="mx-auto max-w-2xl overflow-x-auto px-4 pb-3 [mask-image:linear-gradient(to_right,black_92%,transparent)] md:max-w-4xl xl:max-w-6xl">
