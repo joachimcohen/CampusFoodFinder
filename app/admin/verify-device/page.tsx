@@ -28,7 +28,13 @@ export default function VerifyDevicePage() {
 
       if (!sentRef.current) {
         sentRef.current = true;
-        await supabase.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
+        const { error: sendError } = await supabase.auth.signInWithOtp({
+          email: user.email,
+          options: { shouldCreateUser: false },
+        });
+        if (sendError) {
+          setError("Couldn't send the code — please try again in a moment.");
+        }
       }
       setLoading(false);
     }
@@ -38,8 +44,15 @@ export default function VerifyDevicePage() {
   async function resend() {
     if (!email) return;
     setResending(true);
+    setError(null);
     const supabase = createClient();
-    await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    const { error: sendError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    if (sendError) {
+      setError("Couldn't send the code — please try again in a moment.");
+    }
     setResending(false);
   }
 
