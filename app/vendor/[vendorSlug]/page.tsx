@@ -117,7 +117,7 @@ export default function VendorPage({ params }: Props) {
       title: form.title,
       description: form.description || null,
       pickup_location: form.pickup_location || null,
-      price: form.price === "" ? null : Number(form.price),
+      price: form.price === "" ? null : Math.round(Number(form.price) * 100) / 100,
       photo_url,
       starts_at: form.schedule_type === "one_time" ? new Date(form.starts_at).toISOString() : null,
       expires_at: form.schedule_type === "one_time" ? new Date(form.expires_at).toISOString() : null,
@@ -259,11 +259,16 @@ export default function VendorPage({ params }: Props) {
           <label className="flex flex-col gap-1 text-sm font-medium">
             Price ($, blank = free)
             <input
-              type="number"
-              min={0}
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
               value={form.price}
-              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^\d*\.?\d{0,2}$/.test(v)) {
+                  setForm((f) => ({ ...f, price: v }));
+                }
+              }}
               className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
             />
           </label>
