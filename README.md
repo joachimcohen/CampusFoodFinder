@@ -63,6 +63,19 @@ Since Vercel is already linked to this GitHub repo, pushing to the branch it's c
 to deploy from (or merging into your production branch) triggers a build automatically —
 nothing else to do.
 
+Optionally, add a sixth variable, `CRON_SECRET` (any random string, e.g. from the same
+`openssl rand -base64 32` command), to authenticate the keep-alive cron job below. It's
+not required — the site works fine without it — but it stops anyone else from calling
+that endpoint.
+
+### Keeping the Supabase project awake
+
+Free-tier Supabase projects pause automatically after 7 days with no activity. `vercel.json`
+schedules a daily request to `/api/cron/keep-alive` (a trivial read query), which resets that
+clock — with real students using the site regularly this would rarely matter, but the cron
+means it's never a concern even over a quiet university break. Vercel Cron Jobs are included
+free on the Hobby plan; no extra setup is needed once this is deployed.
+
 ### 4. Onboard your first vendor
 
 Once deployed, sign in at `/admin`, go to the **Vendors** tab, add a vendor (pick their
