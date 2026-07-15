@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { verifyAdminDeviceToken, ADMIN_DEVICE_COOKIE } from "@/lib/admin-device";
 import SignOutButton from "./SignOutButton";
 
 export default async function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,11 +19,14 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     redirect(aal.nextLevel === "aal2" ? "/admin/mfa/verify" : "/admin/mfa/enroll");
   }
 
-  // Past MFA — now check this browser/device has completed the one-time
-  // email verification for new devices (see /admin/verify-device).
-  const deviceCookie = (await cookies()).get(ADMIN_DEVICE_COOKIE)?.value;
-  const deviceTrusted = deviceCookie ? await verifyAdminDeviceToken(deviceCookie, user.id) : false;
-  if (!deviceTrusted) redirect("/admin/verify-device");
+  // New-device email verification is temporarily disabled: the verification
+  // emails aren't being delivered, which was locking admins out entirely.
+  // TOTP MFA above still applies. Re-enable once email delivery is fixed
+  // (see app/admin/verify-device/page.tsx and the Supabase Auth email
+  // template/logs).
+  // const deviceCookie = (await cookies()).get(ADMIN_DEVICE_COOKIE)?.value;
+  // const deviceTrusted = deviceCookie ? await verifyAdminDeviceToken(deviceCookie, user.id) : false;
+  // if (!deviceTrusted) redirect("/admin/verify-device");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
