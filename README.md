@@ -44,11 +44,12 @@ openssl rand -base64 32
 
 This becomes `VENDOR_SESSION_SECRET` — it signs the short-lived cookie issued after a
 vendor enters their PIN. Any long random string works; just don't reuse a secret from
-another project.
+another project. Generate a **second, different** random string the same way for
+`ADMIN_DEVICE_SECRET` (signs the admin "trusted device" cookie — see below).
 
 ### 3. Vercel — set environment variables and deploy
 
-In your Vercel project → **Settings → Environment Variables**, add all four:
+In your Vercel project → **Settings → Environment Variables**, add all five:
 
 | Name | Value | Notes |
 |---|---|---|
@@ -56,6 +57,7 @@ In your Vercel project → **Settings → Environment Variables**, add all four:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from Supabase API settings | public |
 | `SUPABASE_SERVICE_ROLE_KEY` | from Supabase API settings | **secret — do not expose client-side** |
 | `VENDOR_SESSION_SECRET` | output of the `openssl` command above | secret |
+| `ADMIN_DEVICE_SECRET` | output of a second, different `openssl` run | secret |
 
 Since Vercel is already linked to this GitHub repo, pushing to the branch it's configured
 to deploy from (or merging into your production branch) triggers a build automatically —
@@ -67,6 +69,21 @@ Once deployed, sign in at `/admin`, go to the **Vendors** tab, add a vendor (pic
 campus), and copy the 6-digit PIN shown — it's only ever shown once. Give that PIN and
 their vendor URL (`/vendor/<their-slug>`) to the vendor directly.
 
+### 5. First admin sign-in — set up two-factor authentication
+
+The first time you sign in at `/admin`, you'll be walked through setting up an authenticator
+app (Google Authenticator, Authy, etc.) before you can reach the dashboard — this is required,
+not optional. After that, signing in from a **new device or browser** also emails a one-time
+code to your admin address before letting you in, so you get a genuine alert if someone else
+ever tries. Both checks only happen once per device — a recognized device just needs the
+authenticator code on later visits, unless you sign out or the 180-day trust expires.
+
+Note: this uses Supabase's default built-in email sender (no third-party service or setup
+needed), but that sender has strict rate limits meant for occasional use, not bulk sending —
+fine for admin login alerts, but if you ever hit the limit, Supabase's dashboard under
+**Authentication → Emails → SMTP Settings** is where you'd configure a custom email provider
+instead.
+
 ## How auth works (three tiers, no student login)
 
 - **Public feed (`/`)** — read-only, anon Supabase key, no login.
@@ -75,7 +92,9 @@ their vendor URL (`/vendor/<their-slug>`) to the vendor directly.
   cookie scopes all their listing writes to their own `vendor_id`. The anon key never gets
   write access to `listings` or any access to `vendors` — vendor writes go through
   server-side API routes using the Supabase service role key.
-- **Admin (`/admin`)** — real Supabase Auth (email/password), full CRUD via RLS.
+- **Admin (`/admin`)** — real Supabase Auth (email/password) plus required TOTP MFA, full CRUD
+  via RLS. New devices/browsers additionally require a one-time email code (Supabase's
+  built-in email, no third-party service) before the trusted-device cookie is set.
 
 Full schema and RLS details are in `supabase/migrations/0001_init.sql`.
 
