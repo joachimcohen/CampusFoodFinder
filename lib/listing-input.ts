@@ -43,10 +43,13 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
   }
 
   const scheduleType = b.schedule_type as ScheduleType;
-  const price = b.price === null || b.price === undefined || b.price === "" ? null : Number(b.price);
-  if (price !== null && (Number.isNaN(price) || price < 0)) {
+  const rawPrice = b.price === null || b.price === undefined || b.price === "" ? null : Number(b.price);
+  if (rawPrice !== null && (Number.isNaN(rawPrice) || rawPrice < 0)) {
     return { error: "Price must be a positive number." };
   }
+  // Round to the nearest cent so floating-point noise (e.g. 4.999999999999998)
+  // never causes the stored price to drift from what was entered.
+  const price = rawPrice === null ? null : Math.round(rawPrice * 100) / 100;
 
   let starts_at: string | null = null;
   let expires_at: string | null = null;
