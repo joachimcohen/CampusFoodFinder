@@ -5,7 +5,7 @@ import { Gift, Percent, Star, Repeat, PartyPopper } from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
 import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
-import { formatPrice, getRecurrenceScheduleLabel, getTimeRemainingLabel } from "@/lib/listings";
+import { formatPrice, getRecurrenceScheduleLabel, getStartsLabel, getTimeRemainingLabel } from "@/lib/listings";
 
 const FOOD_TYPE_ICONS = {
   free_giveaway: Gift,
@@ -20,11 +20,15 @@ export default function ListingCard({
   mode,
 }: {
   listing: ListingWithRelations;
-  mode: "happening-now" | "weekly";
+  mode: "happening-now" | "coming-up" | "weekly";
 }) {
   const Icon = FOOD_TYPE_ICONS[listing.food_type];
   const timeLabel =
-    mode === "happening-now" ? getTimeRemainingLabel(listing) : getRecurrenceScheduleLabel(listing);
+    mode === "happening-now"
+      ? getTimeRemainingLabel(listing)
+      : mode === "coming-up"
+        ? getStartsLabel(listing)
+        : getRecurrenceScheduleLabel(listing);
   const isUrgent = mode === "happening-now" && timeLabel.includes("min") && !timeLabel.includes("Today");
   // A listing's own pickup location (for vendors without a fixed spot) takes
   // priority over the vendor's general location when set.

@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Campus, FoodType, ListingWithRelations } from "@/lib/types";
 import { FOOD_TYPE_LABELS } from "@/lib/types";
 import {
+  comingUpSortKey,
   happeningNowSortKey,
+  isComingUp,
   isHappeningNow,
   isRecurringInScope,
   weeklyRecurringSortKey,
@@ -47,6 +49,14 @@ export default function Feed({
     [filtered, now]
   );
 
+  const comingUp = useMemo(
+    () =>
+      filtered
+        .filter((l) => isComingUp(l, now))
+        .sort((a, b) => comingUpSortKey(a, now) - comingUpSortKey(b, now)),
+    [filtered, now]
+  );
+
   const weeklyRecurring = useMemo(
     () =>
       filtered
@@ -55,7 +65,7 @@ export default function Feed({
     [filtered, now]
   );
 
-  const isEmpty = happeningNow.length === 0 && weeklyRecurring.length === 0;
+  const isEmpty = happeningNow.length === 0 && comingUp.length === 0 && weeklyRecurring.length === 0;
 
   return (
     <div className="min-h-dvh pb-12">
@@ -123,6 +133,17 @@ export default function Feed({
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {happeningNow.map((l) => (
                     <ListingCard key={l.id} listing={l} mode="happening-now" />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {comingUp.length > 0 && (
+              <section className="mb-8">
+                <h2 className="mb-3 text-lg font-bold">Coming Up</h2>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {comingUp.map((l) => (
+                    <ListingCard key={l.id} listing={l} mode="coming-up" />
                   ))}
                 </div>
               </section>

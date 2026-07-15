@@ -50,6 +50,15 @@ export function isHappeningNow(
   return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
 }
 
+/** Is this a one-time listing starting within the next 7 days, but not yet started? */
+export function isComingUp(listing: ListingWithRelations, now: Date = new Date()): boolean {
+  if (!listing.is_active) return false;
+  if (listing.schedule_type !== "one_time" || !listing.starts_at) return false;
+  const start = new Date(listing.starts_at).getTime();
+  const diff = start - now.getTime();
+  return diff > 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+}
+
 /** Minutes until a one-time listing expires, or a recurring listing's current window ends. */
 function minutesRemaining(listing: ListingWithRelations, now: Date): number | null {
   if (listing.schedule_type === "one_time") {
@@ -59,6 +68,12 @@ function minutesRemaining(listing: ListingWithRelations, now: Date): number | nu
   if (!listing.recurrence_time_end) return null;
   const endMinutes = timeStringToMinutes(listing.recurrence_time_end);
   return endMinutes - getMelbourneParts(now).minutesSinceMidnight;
+}
+
+/** Minutes until a not-yet-started one-time listing begins. */
+function minutesUntilStart(listing: ListingWithRelations, now: Date): number | null {
+  if (listing.schedule_type !== "one_time" || !listing.starts_at) return null;
+  return Math.round((new Date(listing.starts_at).getTime() - now.getTime()) / 60000);
 }
 
 /** Minutes until a recurring listing's *next* occurrence begins (0 if active now). */
@@ -95,6 +110,11 @@ export function happeningNowSortKey(listing: ListingWithRelations, now: Date): n
 /** Sort key for the "Weekly & Recurring" section — soonest-upcoming first. */
 export function weeklyRecurringSortKey(listing: ListingWithRelations, now: Date): number {
   return minutesUntilNextOccurrence(listing, now);
+}
+
+/** Sort key for the "Coming Up" section — soonest-starting first. */
+export function comingUpSortKey(listing: ListingWithRelations, now: Date): number {
+  return minutesUntilStart(listing, now) ?? Infinity;
 }
 
 function formatClockTime(hours: number, minutes: number): string {
@@ -151,6 +171,28 @@ export function getRecurrenceScheduleLabel(listing: ListingWithRelations): strin
   const start = formatTimeString(listing.recurrence_time_start);
   const end = formatTimeString(listing.recurrence_time_end);
   return `${days} · ${start}–${end}`;
+}
+
+/** "Starts in 40 min" / "Starts today at 6pm" / "Starts tomorrow at 6pm" / "Starts Fri at 6pm". */
+export function getStartsLabel(listing: ListingWithRelations, now: Date = new Date()): string {
+  if (!listing.starts_at) return "";
+  const minutesUntil = minutesUntilStart(listing, now);
+  if (minutesUntil === null) return "";
+  if (minutesUntil <= 0) return "Starting now";
+  if (minutesUntil < 60) return `Starts in ${minutesUntil} min`;
+
+  const start = new Date(listing.starts_at);
+  const nowParts = getMelbourneParts(now);
+  const startParts = getMelbourneParts(start);
+  const tomorrowParts = getMelbourneParts(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const clock = formatClockTime(
+    Math.floor(startParts.minutesSinceMidnight / 60),
+    startParts.minutesSinceMidnight % 60
+  );
+
+  if (startParts.dateStr === nowParts.dateStr) return `Starts today at ${clock}`;
+  if (startParts.dateStr === tomorrowParts.dateStr) return `Starts tomorrow at ${clock}`;
+  return `Starts ${WEEKDAY_LABELS[startParts.weekday]} at ${clock}`;
 }
 
 export function formatPrice(price: number | null): string {
