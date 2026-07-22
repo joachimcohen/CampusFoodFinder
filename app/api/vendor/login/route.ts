@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     .update({ failed_attempts: 0, locked_until: null })
     .eq("id", vendor.id);
 
-  const token = await signVendorSession(vendor.id);
+  const token = await signVendorSession(vendor.id, slug);
   const res = NextResponse.json({ ok: true });
   res.cookies.set(VENDOR_SESSION_COOKIE, token, {
     httpOnly: true,

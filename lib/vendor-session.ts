@@ -10,18 +10,19 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function signVendorSession(vendorId: string): Promise<string> {
-  return new SignJWT({ vendor_id: vendorId })
+export async function signVendorSession(vendorId: string, slug: string): Promise<string> {
+  return new SignJWT({ vendor_id: vendorId, slug })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
     .sign(getSecret());
 }
 
-export async function verifyVendorSession(token: string): Promise<string | null> {
+export async function verifyVendorSession(token: string): Promise<{ vendorId: string; slug: string } | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return typeof payload.vendor_id === "string" ? payload.vendor_id : null;
+    if (typeof payload.vendor_id !== "string" || typeof payload.slug !== "string") return null;
+    return { vendorId: payload.vendor_id, slug: payload.slug };
   } catch {
     return null;
   }
