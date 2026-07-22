@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSessionVendorId } from "@/lib/vendor-auth";
+import { getSessionVendorId, isVendorActive } from "@/lib/vendor-auth";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function POST(req: NextRequest) {
   const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
-  if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!vendorId || !(await isVendorActive(vendorId))) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
 
   const formData = await req.formData().catch(() => null);
   const file = formData?.get("file");

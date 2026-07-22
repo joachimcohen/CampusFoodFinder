@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSessionVendorId } from "@/lib/vendor-auth";
+import { getSessionVendorId, isVendorActive } from "@/lib/vendor-auth";
 import { validateListingInput } from "@/lib/listing-input";
 
 export async function GET(req: NextRequest) {
   const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
-  if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!vendorId || !(await isVendorActive(vendorId))) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
 
   const supabase = createAdminClient();
   const { data, error } = await supabase

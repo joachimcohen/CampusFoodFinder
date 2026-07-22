@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSessionVendorId } from "@/lib/vendor-auth";
+import { getSessionVendorId, isVendorActive } from "@/lib/vendor-auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -12,7 +12,9 @@ async function assertOwnsListing(supabase: ReturnType<typeof createAdminClient>,
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
-  if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!vendorId || !(await isVendorActive(vendorId))) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
 
   const supabase = createAdminClient();
   if (!(await assertOwnsListing(supabase, id, vendorId))) {
@@ -38,7 +40,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
-  if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!vendorId || !(await isVendorActive(vendorId))) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
 
   const supabase = createAdminClient();
   if (!(await assertOwnsListing(supabase, id, vendorId))) {
