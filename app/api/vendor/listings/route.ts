@@ -4,7 +4,7 @@ import { getSessionVendorId } from "@/lib/vendor-auth";
 import { validateListingInput } from "@/lib/listing-input";
 
 export async function GET(req: NextRequest) {
-  const vendorId = await getSessionVendorId(req);
+  const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
   if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const supabase = createAdminClient();
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const vendorId = await getSessionVendorId(req);
+  const vendorId = await getSessionVendorId(req, req.headers.get("x-vendor-slug") ?? undefined);
   if (!vendorId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const body = await req.json().catch(() => null);

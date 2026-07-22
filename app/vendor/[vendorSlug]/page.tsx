@@ -38,7 +38,7 @@ export default function VendorPage({ params }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
 
   async function loadListings() {
-    const res = await fetch("/api/vendor/listings");
+    const res = await fetch("/api/vendor/listings", { headers: { "x-vendor-slug": vendorSlug } });
     if (res.status === 401) {
       setStatus("needs-pin");
       return;
@@ -50,9 +50,12 @@ export default function VendorPage({ params }: Props) {
 
   useEffect(() => {
     // Initial auth-check + data fetch on mount; loadListings is also called
-    // imperatively after each mutation below.
+    // imperatively after each mutation below. vendorSlug (from the route
+    // param) never changes for the life of this component, so it's safe to
+    // omit from the dependency array here.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial bootstrap fetch, not a derived-state sync
     loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vendorSlug is a route param, never changes for this component's lifetime
   }, []);
 
   async function submitPin(e: React.FormEvent) {
@@ -101,7 +104,11 @@ export default function VendorPage({ params }: Props) {
     if (photoFile) {
       const fd = new FormData();
       fd.append("file", photoFile);
-      const photoRes = await fetch("/api/vendor/photo", { method: "POST", body: fd });
+      const photoRes = await fetch("/api/vendor/photo", {
+        method: "POST",
+        headers: { "x-vendor-slug": vendorSlug },
+        body: fd,
+      });
       const photoBody = await photoRes.json();
       if (!photoRes.ok) {
         setSaving(false);
@@ -131,7 +138,7 @@ export default function VendorPage({ params }: Props) {
 
     const res = await fetch("/api/vendor/listings", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-vendor-slug": vendorSlug },
       body: JSON.stringify(payload),
     });
     const body = await res.json();
@@ -148,7 +155,7 @@ export default function VendorPage({ params }: Props) {
   async function toggleActive(id: string, is_active: boolean) {
     await fetch(`/api/vendor/listings/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-vendor-slug": vendorSlug },
       body: JSON.stringify({ is_active }),
     });
     loadListings();
@@ -156,7 +163,7 @@ export default function VendorPage({ params }: Props) {
 
   async function removeListing(id: string) {
     if (!confirm("Delete this listing permanently?")) return;
-    await fetch(`/api/vendor/listings/${id}`, { method: "DELETE" });
+    await fetch(`/api/vendor/listings/${id}`, { method: "DELETE", headers: { "x-vendor-slug": vendorSlug } });
     loadListings();
   }
 
