@@ -28,11 +28,14 @@ what's left to wire up.
    `campuses`, `vendors`, and `listings` tables, all RLS policies, the `listing-photos`
    storage bucket, and seeds the four campuses (Waterfront, Burwood, Waurn Ponds,
    Warrnambool).
-3. Go to **Project Settings → API** and note down:
+3. Then run each later migration in `supabase/migrations/`, in filename order
+   (`0002_...`, `0003_...`, `0004_...`), the same way — each is a small, additive change on
+   top of `0001`.
+4. Go to **Project Settings → API** and note down:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **anon / public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (keep this secret — server-side only)
-4. Go to **Authentication → Users** and create your first admin account (email + password).
+5. Go to **Authentication → Users** and create your first admin account (email + password).
    This is the account you'll use to sign in at `/admin` — there's no self-serve admin
    sign-up by design.
 
