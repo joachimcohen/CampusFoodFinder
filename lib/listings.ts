@@ -128,7 +128,17 @@ function formatTimeString(time: string): string {
   return formatClockTime(h, m);
 }
 
-/** "Ends in 40 min" / "Ends in 2h 15m" / "Today until 6pm" style label. */
+const WEEKDAY_LABELS: Record<Weekday, string> = {
+  monday: "Mon",
+  tuesday: "Tue",
+  wednesday: "Wed",
+  thursday: "Thu",
+  friday: "Fri",
+  saturday: "Sat",
+  sunday: "Sun",
+};
+
+/** "Ends in 40 min" / "Ends in 2h 15m" / "Today until 6pm" / "Ends tomorrow at 6pm" / "Ends Fri at 6pm". */
 export function getTimeRemainingLabel(listing: ListingWithRelations, now: Date = new Date()): string {
   const remaining = minutesRemaining(listing, now);
   if (remaining === null) return "";
@@ -140,7 +150,17 @@ export function getTimeRemainingLabel(listing: ListingWithRelations, now: Date =
 
   if (listing.schedule_type === "one_time" && listing.expires_at) {
     const end = new Date(listing.expires_at);
-    return `Today until ${formatClockTime(end.getHours(), end.getMinutes())}`;
+    const nowParts = getMelbourneParts(now);
+    const endParts = getMelbourneParts(end);
+    const tomorrowParts = getMelbourneParts(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+    const clock = formatClockTime(
+      Math.floor(endParts.minutesSinceMidnight / 60),
+      endParts.minutesSinceMidnight % 60
+    );
+
+    if (endParts.dateStr === nowParts.dateStr) return `Today until ${clock}`;
+    if (endParts.dateStr === tomorrowParts.dateStr) return `Ends tomorrow at ${clock}`;
+    return `Ends ${WEEKDAY_LABELS[endParts.weekday]} at ${clock}`;
   }
 
   if (listing.recurrence_time_end) {
@@ -151,16 +171,6 @@ export function getTimeRemainingLabel(listing: ListingWithRelations, now: Date =
   const mins = remaining % 60;
   return mins > 0 ? `Ends in ${hours}h ${mins}m` : `Ends in ${hours}h`;
 }
-
-const WEEKDAY_LABELS: Record<Weekday, string> = {
-  monday: "Mon",
-  tuesday: "Tue",
-  wednesday: "Wed",
-  thursday: "Thu",
-  friday: "Fri",
-  saturday: "Sat",
-  sunday: "Sun",
-};
 
 /** "Wed 7:30–9:30am" style label for the Weekly & Recurring card. */
 export function getRecurrenceScheduleLabel(listing: ListingWithRelations): string {
