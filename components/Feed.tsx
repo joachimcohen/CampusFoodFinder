@@ -155,6 +155,23 @@ export default function Feed({
           Please note some of the specials on this page may have sold out by the time you arrive,
           however every effort is made by vendors to remove the specials as soon as sold out!
         </p>
+
+        <p className="mt-3 text-center text-xs text-[var(--color-foreground)]/50">
+          Brought to you by the{" "}
+          <a
+            href="https://www.dusa.org.au/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--color-primary)]"
+          >
+            Deakin University Student Association
+          </a>
+          .
+        </p>
+        <p className="mt-1 text-center text-xs text-[var(--color-foreground)]/50">
+          No responsibility is taken for the quality of food or experience, and no service has our
+          endorsement nor received our approval or assessment.
+        </p>
       </main>
     </div>
   );
