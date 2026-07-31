@@ -4,27 +4,29 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/slugify";
-import type { Campus, Listing, PublicVendor } from "@/lib/types";
-import { FOOD_TYPE_LABELS } from "@/lib/types";
+import type { AdminAlert, AlertSeverity, Campus, Listing, PublicVendor } from "@/lib/types";
+import { ALERT_SEVERITY_LABELS, FOOD_TYPE_LABELS } from "@/lib/types";
 
-type Tab = "campuses" | "vendors" | "listings";
+type Tab = "campuses" | "vendors" | "listings" | "alerts";
 type RevealedPin = { vendorName: string; pin: string };
 
 export default function AdminDashboard({
   initialCampuses,
   initialVendors,
   initialListings,
+  initialAlerts,
 }: {
   initialCampuses: Campus[];
   initialVendors: PublicVendor[];
   initialListings: Listing[];
+  initialAlerts: AdminAlert[];
 }) {
   const [tab, setTab] = useState<Tab>("vendors");
 
   return (
     <div>
       <div className="mb-6 flex gap-2 border-b border-[var(--color-border)]">
-        {(["campuses", "vendors", "listings"] as Tab[]).map((t) => (
+        {(["campuses", "vendors", "listings", "alerts"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -44,6 +46,7 @@ export default function AdminDashboard({
       {tab === "listings" && (
         <ListingsTab listings={initialListings} vendors={initialVendors} campuses={initialCampuses} />
       )}
+      {tab === "alerts" && <AlertsTab alerts={initialAlerts} />}
     </div>
   );
 }
@@ -382,6 +385,108 @@ function ListingsTab({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// ============ Alerts ============
+
+const SEVERITIES: AlertSeverity[] = ["recall", "advisory", "general"];
+
+function AlertsTab({ alerts }: { alerts: AdminAlert[] }) {
+  const router = useRouter();
+  const [message, setMessage] = useState("");
+  const [severity, setSeverity] = useState<AlertSeverity>("general");
+  const [error, setError] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
+
+  async function postAlert(e: React.FormEvent) {
+    e.preventDefault();
+    setPosting(true);
+    setError(null);
+    const res = await fetch("/api/admin/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message.trim(), severity }),
+    });
+    const body = await res.json();
+    setPosting(false);
+    if (!res.ok) {
+      setError(body.error ?? "Could not post alert.");
+      return;
+    }
+    setMessage("");
+    setSeverity("general");
+    router.refresh();
+  }
+
+  async function toggleActive(id: string, active: boolean) {
+    const supabase = createClient();
+    await supabase.from("admin_alerts").update({ active }).eq("id", id);
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <form onSubmit={postAlert} className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] bg-white p-4">
+        <h2 className="font-bold">Post a new alert</h2>
+        <p className="text-xs text-[var(--color-foreground)]/60">
+          Pushes immediately to every student who&apos;s enabled notifications, and shows as a banner on the feed
+          for everyone else.
+        </p>
+        <textarea
+          required
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="e.g. Batch of sandwiches from The Deli Spot recalled — please do not eat."
+          rows={3}
+          className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+        />
+        <select
+          value={severity}
+          onChange={(e) => setSeverity(e.target.value as AlertSeverity)}
+          className="min-h-11 w-fit rounded-lg border border-[var(--color-border)] bg-white px-3"
+        >
+          {SEVERITIES.map((s) => (
+            <option key={s} value={s}>
+              {ALERT_SEVERITY_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        {error && <p className="text-sm text-[var(--color-destructive)]">{error}</p>}
+        <button
+          type="submit"
+          disabled={posting}
+          className="min-h-11 w-fit rounded-lg bg-[var(--color-primary)] px-4 text-sm font-semibold text-[var(--color-on-primary)] disabled:opacity-50"
+        >
+          {posting ? "Posting…" : "Post alert"}
+        </button>
+      </form>
+
+      {alerts.length === 0 ? (
+        <p className="text-sm text-[var(--color-foreground)]/60">No alerts posted yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {alerts.map((a) => (
+            <li key={a.id} className="rounded-xl border border-[var(--color-border)] bg-white p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-[var(--color-foreground)]/50">
+                    {ALERT_SEVERITY_LABELS[a.severity]} · {a.active ? "Active" : "Inactive"}
+                  </p>
+                  <p className="mt-1 text-sm">{a.message}</p>
+                </div>
+                <button
+                  onClick={() => toggleActive(a.id, !a.active)}
+                  className="min-h-11 shrink-0 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
+                >
+                  {a.active ? "Deactivate" : "Reactivate"}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

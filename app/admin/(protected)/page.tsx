@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Campus, Listing, PublicVendor } from "@/lib/types";
+import type { AdminAlert, Campus, Listing, PublicVendor } from "@/lib/types";
 import AdminDashboard from "./AdminDashboard";
 
 export const revalidate = 0;
@@ -13,10 +13,11 @@ const VENDOR_ADMIN_COLUMNS =
 export default async function AdminPage() {
   const supabase = await createClient();
 
-  const [{ data: campuses }, { data: vendors }, { data: listings }] = await Promise.all([
+  const [{ data: campuses }, { data: vendors }, { data: listings }, { data: alerts }] = await Promise.all([
     supabase.from("campuses").select("*").order("name"),
     supabase.from("vendors").select(VENDOR_ADMIN_COLUMNS).order("name"),
     supabase.from("listings").select("*").order("created_at", { ascending: false }),
+    supabase.from("admin_alerts").select("*").order("created_at", { ascending: false }),
   ]);
 
   return (
@@ -24,6 +25,7 @@ export default async function AdminPage() {
       initialCampuses={(campuses ?? []) as Campus[]}
       initialVendors={(vendors ?? []) as PublicVendor[]}
       initialListings={(listings ?? []) as Listing[]}
+      initialAlerts={(alerts ?? []) as AdminAlert[]}
     />
   );
 }

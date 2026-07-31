@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Campus, FoodType, ListingWithRelations } from "@/lib/types";
+import type { AdminAlert, Campus, FoodType, ListingWithRelations } from "@/lib/types";
 import { FOOD_TYPE_LABELS } from "@/lib/types";
 import {
   comingUpSortKey,
@@ -11,17 +11,26 @@ import {
   isRecurringInScope,
   weeklyRecurringSortKey,
 } from "@/lib/listings";
+import { subscribeToPush } from "@/lib/push-client";
 import ListingCard from "./ListingCard";
 
 const FOOD_TYPES = Object.keys(FOOD_TYPE_LABELS) as FoodType[];
 const REFRESH_INTERVAL_MS = 60_000; // re-evaluate "happening now" every minute
 
+const ALERT_STYLES: Record<AdminAlert["severity"], string> = {
+  recall: "border-[var(--color-destructive)] bg-[var(--color-destructive)]/10 text-[var(--color-destructive)]",
+  advisory: "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
+  general: "border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-foreground)]",
+};
+
 export default function Feed({
   campuses,
   initialListings,
+  alerts,
 }: {
   campuses: Campus[];
   initialListings: ListingWithRelations[];
+  alerts: AdminAlert[];
 }) {
   const [campusSlug, setCampusSlug] = useState<string>("all");
   const [foodType, setFoodType] = useState<FoodType | "all">("all");
@@ -65,9 +74,28 @@ export default function Feed({
   );
 
   const isEmpty = happeningNow.length === 0 && comingUp.length === 0 && weeklyRecurring.length === 0;
+  const [notifStatus, setNotifStatus] = useState<"idle" | "requesting" | "enabled" | "unavailable">("idle");
+
+  async function enableNotifications() {
+    setNotifStatus("requesting");
+    const subscriptionId = await subscribeToPush();
+    setNotifStatus(subscriptionId ? "enabled" : "unavailable");
+  }
 
   return (
     <div className="min-h-dvh pb-12">
+      {alerts.length > 0 && (
+        <div className="flex flex-col gap-2 px-4 pt-3">
+          {alerts.map((a) => (
+            <div key={a.id} className={`mx-auto w-full max-w-2xl rounded-xl border px-4 py-2 text-sm md:max-w-4xl xl:max-w-6xl ${ALERT_STYLES[a.severity]}`}>
+              <strong className="font-semibold">
+                {a.severity === "recall" ? "Recall: " : a.severity === "advisory" ? "Advisory: " : ""}
+              </strong>
+              {a.message}
+            </div>
+          ))}
+        </div>
+      )}
       <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur">
         <div className="mx-auto max-w-2xl px-4 pt-5 md:max-w-4xl xl:max-w-6xl">
           <h1 className="text-2xl font-extrabold text-[var(--color-foreground)]">Campus Food Finder</h1>
@@ -151,7 +179,25 @@ export default function Feed({
           </>
         )}
 
-        <p className="mt-10 text-center text-xs text-[var(--color-foreground)]/50">
+        <div className="mt-10 flex justify-center">
+          {notifStatus === "enabled" ? (
+            <p className="text-xs text-[var(--color-foreground)]/50">Notifications enabled — you&apos;ll hear about recalls and advisories.</p>
+          ) : notifStatus === "unavailable" ? (
+            <p className="text-xs text-[var(--color-foreground)]/50">
+              Notifications aren&apos;t available in this browser — add this app to your Home Screen and try again.
+            </p>
+          ) : (
+            <button
+              onClick={enableNotifications}
+              disabled={notifStatus === "requesting"}
+              className="min-h-9 rounded-full border border-[var(--color-border)] px-3 text-xs font-medium text-[var(--color-foreground)]/70 disabled:opacity-50"
+            >
+              {notifStatus === "requesting" ? "Requesting…" : "Enable notifications for recalls & advisories"}
+            </button>
+          )}
+        </div>
+
+        <p className="mt-3 text-center text-xs text-[var(--color-foreground)]/50">
           Please note some of the specials on this page may have sold out by the time you arrive,
           however every effort is made by vendors to remove the specials as soon as sold out!
         </p>

@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import type { DietaryTag, FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
 import { DIETARY_TAGS, DIETARY_TAG_LABELS, FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
+import VendorQueueManager from "@/components/VendorQueueManager";
 
 type Props = { params: Promise<{ vendorSlug: string }> };
 
@@ -22,6 +23,10 @@ const emptyForm = {
   recurrence_time_end: "",
   recurrence_valid_until: "",
   dietary_tags: [] as DietaryTag[],
+  queue_enabled: false,
+  queue_batch_size: "10",
+  queue_no_show_minutes: "5",
+  queue_capacity_cap: "",
 };
 
 export default function VendorPage({ params }: Props) {
@@ -134,6 +139,11 @@ export default function VendorPage({ params }: Props) {
       recurrence_valid_until:
         form.schedule_type === "recurring" && form.recurrence_valid_until ? form.recurrence_valid_until : null,
       dietary_tags: form.dietary_tags.length > 0 ? form.dietary_tags : null,
+      queue_enabled: form.queue_enabled,
+      queue_batch_size: form.queue_enabled ? Number(form.queue_batch_size) : undefined,
+      queue_no_show_minutes: form.queue_enabled ? Number(form.queue_no_show_minutes) : undefined,
+      queue_capacity_cap:
+        form.queue_enabled && form.queue_capacity_cap !== "" ? Number(form.queue_capacity_cap) : null,
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -404,6 +414,53 @@ export default function VendorPage({ params }: Props) {
           </div>
         )}
 
+        <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.queue_enabled}
+              onChange={(e) => setForm((f) => ({ ...f, queue_enabled: e.target.checked }))}
+            />
+            Enable virtual queue for this listing
+          </label>
+          {form.queue_enabled && (
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                Batch size (called forward at once)
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={form.queue_batch_size}
+                  onChange={(e) => setForm((f) => ({ ...f, queue_batch_size: e.target.value }))}
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                No-show window (minutes)
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={form.queue_no_show_minutes}
+                  onChange={(e) => setForm((f) => ({ ...f, queue_no_show_minutes: e.target.value }))}
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+                Capacity cap (optional, e.g. 300 — blank for no limit)
+                <input
+                  type="number"
+                  min={1}
+                  value={form.queue_capacity_cap}
+                  onChange={(e) => setForm((f) => ({ ...f, queue_capacity_cap: e.target.value }))}
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
         {formError && <p className="text-sm text-[var(--color-destructive)]">{formError}</p>}
 
         <button
@@ -417,12 +474,12 @@ export default function VendorPage({ params }: Props) {
 
       <section className="mt-8">
         <h2 className="mb-2 font-bold">Active ({activeListings.length})</h2>
-        <ListingRows listings={activeListings} onToggle={toggleActive} onDelete={removeListing} />
+        <ListingRows listings={activeListings} onToggle={toggleActive} onDelete={removeListing} vendorSlug={vendorSlug} />
       </section>
 
       <section className="mt-8">
         <h2 className="mb-2 font-bold text-[var(--color-foreground)]/60">Inactive / expired ({inactiveListings.length})</h2>
-        <ListingRows listings={inactiveListings} onToggle={toggleActive} onDelete={removeListing} />
+        <ListingRows listings={inactiveListings} onToggle={toggleActive} onDelete={removeListing} vendorSlug={vendorSlug} />
       </section>
     </main>
   );
@@ -432,10 +489,12 @@ function ListingRows({
   listings,
   onToggle,
   onDelete,
+  vendorSlug,
 }: {
   listings: Listing[];
   onToggle: (id: string, is_active: boolean) => void;
   onDelete: (id: string) => void;
+  vendorSlug: string;
 }) {
   if (listings.length === 0) {
     return <p className="text-sm text-[var(--color-foreground)]/50">Nothing here yet.</p>;
@@ -443,28 +502,28 @@ function ListingRows({
   return (
     <ul className="flex flex-col gap-2">
       {listings.map((l) => (
-        <li
-          key={l.id}
-          className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-white px-4 py-3"
-        >
-          <div>
-            <p className="font-semibold">{l.title}</p>
-            <p className="text-xs text-[var(--color-foreground)]/60">{FOOD_TYPE_LABELS[l.food_type]}</p>
+        <li key={l.id} className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">{l.title}</p>
+              <p className="text-xs text-[var(--color-foreground)]/60">{FOOD_TYPE_LABELS[l.food_type]}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onToggle(l.id, !l.is_active)}
+                className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
+              >
+                {l.is_active ? "Deactivate" : "Reactivate"}
+              </button>
+              <button
+                onClick={() => onDelete(l.id)}
+                className="min-h-11 rounded-lg border border-[var(--color-destructive)] px-3 text-sm font-medium text-[var(--color-destructive)]"
+              >
+                Delete
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onToggle(l.id, !l.is_active)}
-              className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
-            >
-              {l.is_active ? "Deactivate" : "Reactivate"}
-            </button>
-            <button
-              onClick={() => onDelete(l.id)}
-              className="min-h-11 rounded-lg border border-[var(--color-destructive)] px-3 text-sm font-medium text-[var(--color-destructive)]"
-            >
-              Delete
-            </button>
-          </div>
+          {l.queue_enabled && <VendorQueueManager listingId={l.id} vendorSlug={vendorSlug} />}
         </li>
       ))}
     </ul>
