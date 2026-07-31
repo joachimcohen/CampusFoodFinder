@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: session.error }, { status: 400 });
   }
 
+  if (session.status === "closed") {
+    return NextResponse.json({ error: "This queue is closed right now. Please check back later." }, { status: 409 });
+  }
+
   if (session.capacity_cap !== null) {
     const { count } = await supabase
       .from("queue_entries")

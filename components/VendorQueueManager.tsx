@@ -77,10 +77,18 @@ export default function VendorQueueManager({ listingId, vendorSlug }: { listingI
   }
 
   async function closeQueue() {
-    if (!confirm("Close today's queue? Students already waiting won't be able to check in again after this.")) {
+    if (!confirm("Close today's queue? No new students will be able to join until you reopen it — anyone already waiting stays in line.")) {
       return;
     }
     await fetch(`/api/vendor/queue/${listingId}/close`, {
+      method: "POST",
+      headers: { "x-vendor-slug": vendorSlug },
+    });
+    load();
+  }
+
+  async function reopenQueue() {
+    await fetch(`/api/vendor/queue/${listingId}/reopen`, {
       method: "POST",
       headers: { "x-vendor-slug": vendorSlug },
     });
@@ -138,13 +146,21 @@ export default function VendorQueueManager({ listingId, vendorSlug }: { listingI
             >
               Call more
             </button>
-            <button
-              onClick={closeQueue}
-              disabled={snapshot.session.status === "closed"}
-              className="min-h-11 rounded-lg border border-[var(--color-destructive)] px-3 text-sm font-medium text-[var(--color-destructive)] disabled:opacity-50"
-            >
-              Close queue
-            </button>
+            {snapshot.session.status === "open" ? (
+              <button
+                onClick={closeQueue}
+                className="min-h-11 rounded-lg border border-[var(--color-destructive)] px-3 text-sm font-medium text-[var(--color-destructive)]"
+              >
+                Close queue
+              </button>
+            ) : (
+              <button
+                onClick={reopenQueue}
+                className="min-h-11 rounded-lg bg-[var(--color-accent)] px-3 text-sm font-medium text-white"
+              >
+                Reopen queue
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm">
