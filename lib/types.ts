@@ -165,10 +165,15 @@ export interface QueueEntry {
   status: QueueEntryStatus;
   joined_at: string;
   called_at: string | null;
+  /** "Nth to join today" — stable for the life of the ticket, shown to both the student and staff so they can be matched up. */
+  ticket_number: number;
+  /** Rank among only those still waiting — omitted once called/served/expired, since it no longer applies. */
+  position?: number;
 }
 
 export interface QueueTicketStatus {
   status: QueueEntryStatus;
+  ticketNumber: number;
   position: number | null;
   waitMinutesLabel: string | null;
 }

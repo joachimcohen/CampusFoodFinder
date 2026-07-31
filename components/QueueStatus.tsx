@@ -30,7 +30,7 @@ function saveTicket(listingId: string, ticket: Ticket) {
 
 const STATUS_COPY: Record<QueueEntryStatus, { heading: string; sub: string }> = {
   waiting: { heading: "You're in the queue", sub: "We'll let you know when it's your turn." },
-  called: { heading: "You're up!", sub: "Come to the counter now." },
+  called: { heading: "You're up!", sub: "Come to the counter now and show this number." },
   expired: { heading: "Your window's closed", sub: "Please rejoin the queue if you'd still like to be served." },
   served: { heading: "You've been served", sub: "Thanks for using the virtual queue!" },
 };
@@ -38,6 +38,7 @@ const STATUS_COPY: Record<QueueEntryStatus, { heading: string; sub: string }> = 
 export default function QueueStatus({ listing }: { listing: ListingWithRelations }) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [status, setStatus] = useState<QueueEntryStatus | null>(null);
+  const [ticketNumber, setTicketNumber] = useState<number | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [waitLabel, setWaitLabel] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
@@ -58,6 +59,7 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
     if (!res.ok) return;
     const body = await res.json();
     setStatus(body.status);
+    setTicketNumber(body.ticketNumber);
     setPosition(body.position);
     setWaitLabel(body.waitMinutesLabel);
   }, [listing.id]);
@@ -99,6 +101,7 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
     const newTicket = { ticketId: body.ticketId, token: body.token };
     saveTicket(listing.id, newTicket);
     setStatus(null);
+    setTicketNumber(null);
     setPosition(null);
     setWaitLabel(null);
     setTicket(newTicket);
@@ -139,17 +142,32 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
         <p className="text-sm text-[var(--color-foreground)]/60">Loading your ticket…</p>
       ) : (
         <div
-          className="flex flex-col gap-2 rounded-2xl border-2 p-8"
+          className="flex flex-col items-center gap-2 rounded-2xl border-2 p-8"
           style={{ borderColor: colorFor[status], backgroundColor: `color-mix(in srgb, ${colorFor[status]} 8%, white)` }}
         >
+          {ticketNumber !== null && (
+            <div className="mb-1 flex flex-col items-center">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-foreground)]/50">
+                Ticket number
+              </span>
+              <span className="text-5xl font-extrabold" style={{ color: colorFor[status] }}>
+                #{ticketNumber}
+              </span>
+            </div>
+          )}
+
           <h2 className="text-xl font-extrabold" style={{ color: colorFor[status] }}>
             {STATUS_COPY[status].heading}
           </h2>
           <p className="text-sm text-[var(--color-foreground)]/70">{STATUS_COPY[status].sub}</p>
 
           {status === "waiting" && (
-            <div className="mt-4 flex flex-col gap-1">
-              {position !== null && <p className="text-3xl font-extrabold">#{position}</p>}
+            <div className="mt-2 flex flex-col items-center gap-1 border-t border-[var(--color-border)] pt-3">
+              {position !== null && (
+                <p className="text-sm text-[var(--color-foreground)]/70">
+                  You&apos;re <strong>#{position}</strong> in line
+                </p>
+              )}
               <p className="text-sm text-[var(--color-foreground)]/60">{waitLabel}</p>
             </div>
           )}

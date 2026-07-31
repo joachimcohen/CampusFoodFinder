@@ -192,12 +192,12 @@ export default function VendorQueueManager({ listingId, vendorSlug }: { listingI
                 Currently called
               </p>
               <ul className="flex flex-col gap-1">
-                {snapshot.called.map((entry, i) => (
+                {snapshot.called.map((entry) => (
                   <li
                     key={entry.id}
                     className="flex items-center justify-between rounded-lg bg-[var(--color-muted)] px-3 py-2 text-sm"
                   >
-                    <span>Ticket #{i + 1}</span>
+                    <span className="font-semibold">Ticket #{entry.ticket_number}</span>
                     <button
                       onClick={() => markServed(entry.id)}
                       className="min-h-8 rounded-lg bg-[var(--color-accent)] px-2 text-xs font-semibold text-white"

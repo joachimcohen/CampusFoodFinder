@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { computeEffectiveStatus, computePosition, computeWaitEstimate, formatWaitLabel } from "@/lib/queue";
+import {
+  computeEffectiveStatus,
+  computePosition,
+  computeTicketNumber,
+  computeWaitEstimate,
+  formatWaitLabel,
+} from "@/lib/queue";
 
 type RouteParams = { params: Promise<{ ticketId: string }> };
 
@@ -38,9 +44,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (!session) return NextResponse.json({ error: "Queue session not found." }, { status: 404 });
 
   const effectiveStatus = computeEffectiveStatus(entry.status, entry.called_at, session.no_show_window_minutes);
+  const ticketNumber = await computeTicketNumber(supabase, entry.session_id, entry.joined_at);
 
   if (effectiveStatus !== "waiting") {
-    return NextResponse.json({ status: effectiveStatus, position: null, waitMinutesLabel: null });
+    return NextResponse.json({ status: effectiveStatus, ticketNumber, position: null, waitMinutesLabel: null });
   }
 
   const position = await computePosition(supabase, entry.session_id, entry.joined_at);
@@ -48,6 +55,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
   return NextResponse.json({
     status: effectiveStatus,
+    ticketNumber,
     position,
     waitMinutesLabel: formatWaitLabel(waitMinutes),
   });

@@ -77,20 +77,41 @@ export function computeEffectiveStatus(
   return minutesSinceCalled > noShowWindowMinutes ? "expired" : "called";
 }
 
+async function countJoinedBefore(
+  supabase: AdminClient,
+  sessionId: string,
+  joinedAt: string,
+  onlyWaiting: boolean
+): Promise<number> {
+  let query = supabase
+    .from("queue_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", sessionId)
+    .lt("joined_at", joinedAt);
+  if (onlyWaiting) query = query.eq("status", "waiting");
+
+  const { count } = await query;
+  return count ?? 0;
+}
+
 /** Position among still-waiting entries, 1-indexed by join order. Always computed live — never stored — so it can't drift out of sync as people are served or expire. */
-export async function computePosition(
+export async function computePosition(supabase: AdminClient, sessionId: string, joinedAt: string): Promise<number> {
+  return (await countJoinedBefore(supabase, sessionId, joinedAt, true)) + 1;
+}
+
+/**
+ * A stable "Nth to join today" number — the queue equivalent of a deli
+ * ticket. Unlike position, this never changes once assigned (join order
+ * never changes and entries are never deleted), so it's what a student
+ * shows staff at the counter and what staff see next to each called
+ * student, letting the two sides be matched up without guesswork.
+ */
+export async function computeTicketNumber(
   supabase: AdminClient,
   sessionId: string,
   joinedAt: string
 ): Promise<number> {
-  const { count } = await supabase
-    .from("queue_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("session_id", sessionId)
-    .eq("status", "waiting")
-    .lt("joined_at", joinedAt);
-
-  return (count ?? 0) + 1;
+  return (await countJoinedBefore(supabase, sessionId, joinedAt, false)) + 1;
 }
 
 /**
@@ -131,21 +152,6 @@ export function formatWaitLabel(minutes: number | null): string | null {
   return `~${minutes} min`;
 }
 
-/** The waiting list for a session, in join order, with derived positions. */
-export async function getWaitingEntries(
-  supabase: AdminClient,
-  sessionId: string
-): Promise<QueueEntry[]> {
-  const { data } = await supabase
-    .from("queue_entries")
-    .select("id, session_id, status, joined_at, called_at")
-    .eq("session_id", sessionId)
-    .eq("status", "waiting")
-    .order("joined_at", { ascending: true });
-
-  return (data ?? []) as QueueEntry[];
-}
-
 /**
  * Raises or lowers today's already-open session's capacity live — separate
  * from the listing's own default, and independent of it, per the vendor's
@@ -171,7 +177,14 @@ export async function updateSessionCapacity(
   return data as QueueSession;
 }
 
-/** Full snapshot for the staff screen: today's session, the ordered waiting list with derived positions, who's currently called (awaiting being marked served or expiring), and running counts. */
+/**
+ * Full snapshot for the staff screen: today's session, the ordered waiting
+ * list, who's currently called (awaiting being marked served or expiring),
+ * and running counts. Fetches every entry for the session once and derives
+ * each one's ticket number (join order, 1-indexed, never changes) and
+ * position (rank among only those still waiting) from that single list,
+ * rather than a separate query per entry.
+ */
 export async function getStaffSnapshot(
   supabase: AdminClient,
   listingId: string
@@ -179,25 +192,31 @@ export async function getStaffSnapshot(
   const session = await findOrCreateTodaySession(supabase, listingId);
   if ("error" in session) return session;
 
-  const waiting = await getWaitingEntries(supabase, session.id);
-
-  const { data: calledRows } = await supabase
+  const { data: rows } = await supabase
     .from("queue_entries")
     .select("id, session_id, status, joined_at, called_at")
     .eq("session_id", session.id)
-    .eq("status", "called")
-    .order("called_at", { ascending: true });
+    .order("joined_at", { ascending: true });
 
   const now = new Date();
-  const called = ((calledRows ?? []) as QueueEntry[]).filter(
-    (e) => computeEffectiveStatus(e.status, e.called_at, session.no_show_window_minutes, now) === "called"
-  );
+  const waiting: QueueEntry[] = [];
+  const called: QueueEntry[] = [];
+  let servedCount = 0;
+  let waitingSeen = 0;
 
-  const { count: servedCount } = await supabase
-    .from("queue_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("session_id", session.id)
-    .eq("status", "served");
+  for (const [index, row] of ((rows ?? []) as QueueEntry[]).entries()) {
+    const ticket_number = index + 1;
+    const effective = computeEffectiveStatus(row.status, row.called_at, session.no_show_window_minutes, now);
 
-  return { session, waiting, called, waitingCount: waiting.length, servedCount: servedCount ?? 0 };
+    if (effective === "waiting") {
+      waitingSeen += 1;
+      waiting.push({ ...row, ticket_number, position: waitingSeen });
+    } else if (effective === "called") {
+      called.push({ ...row, ticket_number });
+    } else if (row.status === "served") {
+      servedCount += 1;
+    }
+  }
+
+  return { session, waiting, called, waitingCount: waiting.length, servedCount };
 }
