@@ -29,6 +29,8 @@ export interface ListingInput {
   queue_batch_size: number;
   queue_no_show_minutes: number;
   queue_capacity_cap: number | null;
+  queue_waiting_message: string | null;
+  queue_served_message: string | null;
 }
 
 /** Validates the optional virtual-queue config fields. Returns an error string, or the parsed fields. */
@@ -41,11 +43,20 @@ export function validateQueueConfig(
       queue_batch_size: number;
       queue_no_show_minutes: number;
       queue_capacity_cap: number | null;
+      queue_waiting_message: string | null;
+      queue_served_message: string | null;
     } {
   const queue_enabled = b.queue_enabled === true;
 
   if (!queue_enabled) {
-    return { queue_enabled: false, queue_batch_size: 10, queue_no_show_minutes: 5, queue_capacity_cap: null };
+    return {
+      queue_enabled: false,
+      queue_batch_size: 10,
+      queue_no_show_minutes: 5,
+      queue_capacity_cap: null,
+      queue_waiting_message: null,
+      queue_served_message: null,
+    };
   }
 
   const batchSize = Number(b.queue_batch_size);
@@ -66,11 +77,22 @@ export function validateQueueConfig(
     }
   }
 
+  const queue_waiting_message =
+    typeof b.queue_waiting_message === "string" && b.queue_waiting_message.trim()
+      ? b.queue_waiting_message.trim()
+      : null;
+  const queue_served_message =
+    typeof b.queue_served_message === "string" && b.queue_served_message.trim()
+      ? b.queue_served_message.trim()
+      : null;
+
   return {
     queue_enabled: true,
     queue_batch_size: batchSize,
     queue_no_show_minutes: noShowMinutes,
     queue_capacity_cap: capacityCap,
+    queue_waiting_message,
+    queue_served_message,
   };
 }
 

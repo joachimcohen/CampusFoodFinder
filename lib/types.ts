@@ -69,6 +69,8 @@ export interface Listing {
   queue_batch_size: number;
   queue_no_show_minutes: number;
   queue_capacity_cap: number | null;
+  queue_waiting_message: string | null;
+  queue_served_message: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

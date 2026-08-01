@@ -27,6 +27,8 @@ const emptyForm = {
   queue_batch_size: "10",
   queue_no_show_minutes: "5",
   queue_capacity_cap: "",
+  queue_waiting_message: "",
+  queue_served_message: "",
 };
 
 export default function VendorPage({ params }: Props) {
@@ -144,6 +146,8 @@ export default function VendorPage({ params }: Props) {
       queue_no_show_minutes: form.queue_enabled ? Number(form.queue_no_show_minutes) : undefined,
       queue_capacity_cap:
         form.queue_enabled && form.queue_capacity_cap !== "" ? Number(form.queue_capacity_cap) : null,
+      queue_waiting_message: form.queue_enabled ? form.queue_waiting_message || null : null,
+      queue_served_message: form.queue_enabled ? form.queue_served_message || null : null,
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -455,6 +459,26 @@ export default function VendorPage({ params }: Props) {
                   value={form.queue_capacity_cap}
                   onChange={(e) => setForm((f) => ({ ...f, queue_capacity_cap: e.target.value }))}
                   className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+                Message while waiting (optional)
+                <textarea
+                  value={form.queue_waiting_message}
+                  onChange={(e) => setForm((f) => ({ ...f, queue_waiting_message: e.target.value }))}
+                  className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+                  rows={2}
+                  placeholder="e.g. Grab a coffee from the market while you wait!"
+                />
+              </label>
+              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+                Message after being served (optional)
+                <textarea
+                  value={form.queue_served_message}
+                  onChange={(e) => setForm((f) => ({ ...f, queue_served_message: e.target.value }))}
+                  className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+                  rows={2}
+                  placeholder="e.g. Take a look at these recipes with your leftovers!"
                 />
               </label>
             </div>

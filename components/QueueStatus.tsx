@@ -169,7 +169,16 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
                 </p>
               )}
               <p className="text-sm text-[var(--color-foreground)]/60">{waitLabel}</p>
+              {listing.queue_waiting_message && (
+                <p className="mt-2 text-sm text-[var(--color-foreground)]/70">{listing.queue_waiting_message}</p>
+              )}
             </div>
+          )}
+
+          {status === "served" && listing.queue_served_message && (
+            <p className="mt-2 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-foreground)]/70">
+              {listing.queue_served_message}
+            </p>
           )}
 
           {status === "expired" && (

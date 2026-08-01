@@ -3,7 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionVendorId, isVendorActive } from "@/lib/vendor-auth";
 import { validateQueueConfig } from "@/lib/listing-input";
 
-const QUEUE_FIELD_NAMES = ["queue_enabled", "queue_batch_size", "queue_no_show_minutes", "queue_capacity_cap"];
+const QUEUE_FIELD_NAMES = [
+  "queue_enabled",
+  "queue_batch_size",
+  "queue_no_show_minutes",
+  "queue_capacity_cap",
+  "queue_waiting_message",
+  "queue_served_message",
+];
 
 type RouteParams = { params: Promise<{ id: string }> };
 
