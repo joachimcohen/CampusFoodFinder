@@ -31,6 +31,18 @@ export interface ListingInput {
   queue_capacity_cap: number | null;
   queue_waiting_message: string | null;
   queue_served_message: string | null;
+  queue_waiting_message_url: string | null;
+  queue_served_message_url: string | null;
+}
+
+/** A bare `http(s)://` prefix check — enough to stop obviously-broken input (javascript:, plain text) without a full URL-parsing dependency. */
+function validateOptionalUrl(value: unknown, label: string): { error: string } | { url: string | null } {
+  if (typeof value !== "string" || !value.trim()) return { url: null };
+  const trimmed = value.trim();
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { error: `${label} must be a full web address starting with http:// or https://.` };
+  }
+  return { url: trimmed };
 }
 
 /** Validates the optional virtual-queue config fields. Returns an error string, or the parsed fields. */
@@ -45,6 +57,8 @@ export function validateQueueConfig(
       queue_capacity_cap: number | null;
       queue_waiting_message: string | null;
       queue_served_message: string | null;
+      queue_waiting_message_url: string | null;
+      queue_served_message_url: string | null;
     } {
   const queue_enabled = b.queue_enabled === true;
 
@@ -56,6 +70,8 @@ export function validateQueueConfig(
       queue_capacity_cap: null,
       queue_waiting_message: null,
       queue_served_message: null,
+      queue_waiting_message_url: null,
+      queue_served_message_url: null,
     };
   }
 
@@ -86,6 +102,12 @@ export function validateQueueConfig(
       ? b.queue_served_message.trim()
       : null;
 
+  const waitingUrlResult = validateOptionalUrl(b.queue_waiting_message_url, "Waiting message link");
+  if ("error" in waitingUrlResult) return waitingUrlResult;
+
+  const servedUrlResult = validateOptionalUrl(b.queue_served_message_url, "Served message link");
+  if ("error" in servedUrlResult) return servedUrlResult;
+
   return {
     queue_enabled: true,
     queue_batch_size: batchSize,
@@ -93,6 +115,8 @@ export function validateQueueConfig(
     queue_capacity_cap: capacityCap,
     queue_waiting_message,
     queue_served_message,
+    queue_waiting_message_url: waitingUrlResult.url,
+    queue_served_message_url: servedUrlResult.url,
   };
 }
 

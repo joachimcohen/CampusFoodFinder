@@ -10,6 +10,8 @@ const QUEUE_FIELD_NAMES = [
   "queue_capacity_cap",
   "queue_waiting_message",
   "queue_served_message",
+  "queue_waiting_message_url",
+  "queue_served_message_url",
 ];
 
 type RouteParams = { params: Promise<{ id: string }> };

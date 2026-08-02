@@ -71,6 +71,8 @@ export interface Listing {
   queue_capacity_cap: number | null;
   queue_waiting_message: string | null;
   queue_served_message: string | null;
+  queue_waiting_message_url: string | null;
+  queue_served_message_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

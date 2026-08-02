@@ -170,15 +170,15 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
               )}
               <p className="text-sm text-[var(--color-foreground)]/60">{waitLabel}</p>
               {listing.queue_waiting_message && (
-                <p className="mt-2 text-sm text-[var(--color-foreground)]/70">{listing.queue_waiting_message}</p>
+                <QueueMessage text={listing.queue_waiting_message} url={listing.queue_waiting_message_url} />
               )}
             </div>
           )}
 
           {status === "served" && listing.queue_served_message && (
-            <p className="mt-2 border-t border-[var(--color-border)] pt-3 text-sm text-[var(--color-foreground)]/70">
-              {listing.queue_served_message}
-            </p>
+            <div className="mt-2 border-t border-[var(--color-border)] pt-3">
+              <QueueMessage text={listing.queue_served_message} url={listing.queue_served_message_url} />
+            </div>
           )}
 
           {status === "expired" && (
@@ -193,5 +193,21 @@ export default function QueueStatus({ listing }: { listing: ListingWithRelations
         </div>
       )}
     </main>
+  );
+}
+
+/** A vendor's custom waiting/served message, rendered as a tappable link when they've set one — never an auto-redirect, so the student stays in control of when they leave this screen. */
+function QueueMessage({ text, url }: { text: string; url: string | null }) {
+  if (!url) return <p className="text-sm text-[var(--color-foreground)]/70">{text}</p>;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm font-semibold underline"
+      style={{ color: "var(--color-accent)" }}
+    >
+      {text} →
+    </a>
   );
 }
