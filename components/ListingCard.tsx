@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Gift, Percent, Star, Repeat, PartyPopper } from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
 import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
+import QueueTicketPanel from "./QueueTicketPanel";
 import { formatPrice, getRecurrenceScheduleLabel, getStartsLabel, getTimeRemainingLabel } from "@/lib/listings";
 
 const FOOD_TYPE_ICONS = {
@@ -87,14 +87,7 @@ export default function ListingCard({
             ))}
           </div>
         )}
-        {listing.queue_enabled && (
-          <Link
-            href={`/queue/${listing.id}`}
-            className="mt-1 inline-flex min-h-8 w-fit items-center rounded-full bg-[var(--color-accent)] px-3 text-xs font-semibold text-white"
-          >
-            Join queue
-          </Link>
-        )}
+        {listing.queue_enabled && <QueueTicketPanel listing={listing} compact />}
       </div>
     </article>
   );
