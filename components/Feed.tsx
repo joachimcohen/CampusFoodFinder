@@ -173,13 +173,10 @@ export default function Feed({
           .
         </p>
 
-        <p className="mx-auto mt-6 max-w-md border-t border-[var(--color-border)] pt-4 text-center text-xs text-[var(--color-foreground)]/60">
-          Deakin University Student Association acknowledges the Traditional Custodians of all the unceded lands, skies and waterways
-          on which Deakin students, staff and communities come together. As we learn and teach through virtually
-          and physically constructed places across time, we pay our deep respect to the Ancestors and Elders of
-          Wadawurrung Country, Eastern Maar Country and Wurundjeri Country, where our physical campuses are
-          located. We also acknowledge the many First Nations from where students join us online and make vital
-          contributions to our learning communities.
+        <p className="mt-6 border-t border-[var(--color-border)] pt-4 text-center text-xs text-[var(--color-foreground)]/60">
+          Deakin University Student Association acknowledges the Traditional Custodians of all the unceded lands,
+          skies and waterways on which we come together. We pay our deep respect to the many First Nations from
+          where our students come and on which we operate.
         </p>
       </main>
     </div>
