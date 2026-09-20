@@ -36,3 +36,28 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// Virtual Queue "you're up" alerts and Admin Alert broadcasts both arrive
+// here as a plain JSON payload ({ title, body, url }) — see lib/push.ts.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    // Ignore malformed payloads rather than throwing inside the push handler.
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Campus Food Finder", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow(event.notification.data?.url || "/"));
+});

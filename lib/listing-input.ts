@@ -25,6 +25,99 @@ export interface ListingInput {
   recurrence_time_end: string | null;
   recurrence_valid_until: string | null;
   dietary_tags: DietaryTag[] | null;
+  queue_enabled: boolean;
+  queue_batch_size: number;
+  queue_no_show_minutes: number;
+  queue_capacity_cap: number | null;
+  queue_waiting_message: string | null;
+  queue_served_message: string | null;
+  queue_waiting_message_url: string | null;
+  queue_served_message_url: string | null;
+}
+
+/** A bare `http(s)://` prefix check — enough to stop obviously-broken input (javascript:, plain text) without a full URL-parsing dependency. */
+function validateOptionalUrl(value: unknown, label: string): { error: string } | { url: string | null } {
+  if (typeof value !== "string" || !value.trim()) return { url: null };
+  const trimmed = value.trim();
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { error: `${label} must be a full web address starting with http:// or https://.` };
+  }
+  return { url: trimmed };
+}
+
+/** Validates the optional virtual-queue config fields. Returns an error string, or the parsed fields. */
+export function validateQueueConfig(
+  b: Record<string, unknown>
+):
+  | { error: string }
+  | {
+      queue_enabled: boolean;
+      queue_batch_size: number;
+      queue_no_show_minutes: number;
+      queue_capacity_cap: number | null;
+      queue_waiting_message: string | null;
+      queue_served_message: string | null;
+      queue_waiting_message_url: string | null;
+      queue_served_message_url: string | null;
+    } {
+  const queue_enabled = b.queue_enabled === true;
+
+  if (!queue_enabled) {
+    return {
+      queue_enabled: false,
+      queue_batch_size: 10,
+      queue_no_show_minutes: 5,
+      queue_capacity_cap: null,
+      queue_waiting_message: null,
+      queue_served_message: null,
+      queue_waiting_message_url: null,
+      queue_served_message_url: null,
+    };
+  }
+
+  const batchSize = Number(b.queue_batch_size);
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    return { error: "Queue batch size must be a whole number of at least 1." };
+  }
+
+  const noShowMinutes = Number(b.queue_no_show_minutes);
+  if (!Number.isInteger(noShowMinutes) || noShowMinutes < 1) {
+    return { error: "Queue no-show window must be a whole number of minutes, at least 1." };
+  }
+
+  let capacityCap: number | null = null;
+  if (b.queue_capacity_cap !== null && b.queue_capacity_cap !== undefined && b.queue_capacity_cap !== "") {
+    capacityCap = Number(b.queue_capacity_cap);
+    if (!Number.isInteger(capacityCap) || capacityCap < 1) {
+      return { error: "Queue capacity must be a whole number of at least 1, or left blank for no cap." };
+    }
+  }
+
+  const queue_waiting_message =
+    typeof b.queue_waiting_message === "string" && b.queue_waiting_message.trim()
+      ? b.queue_waiting_message.trim()
+      : null;
+  const queue_served_message =
+    typeof b.queue_served_message === "string" && b.queue_served_message.trim()
+      ? b.queue_served_message.trim()
+      : null;
+
+  const waitingUrlResult = validateOptionalUrl(b.queue_waiting_message_url, "Waiting message link");
+  if ("error" in waitingUrlResult) return waitingUrlResult;
+
+  const servedUrlResult = validateOptionalUrl(b.queue_served_message_url, "Served message link");
+  if ("error" in servedUrlResult) return servedUrlResult;
+
+  return {
+    queue_enabled: true,
+    queue_batch_size: batchSize,
+    queue_no_show_minutes: noShowMinutes,
+    queue_capacity_cap: capacityCap,
+    queue_waiting_message,
+    queue_served_message,
+    queue_waiting_message_url: waitingUrlResult.url,
+    queue_served_message_url: servedUrlResult.url,
+  };
 }
 
 /** Validates a raw listing payload from the client. Returns an error string, or null if valid. */
@@ -92,6 +185,9 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
     dietary_tags = b.dietary_tags.length > 0 ? (b.dietary_tags as DietaryTag[]) : null;
   }
 
+  const queueConfig = validateQueueConfig(b);
+  if ("error" in queueConfig) return queueConfig;
+
   return {
     input: {
       food_type: b.food_type as FoodType,
@@ -109,6 +205,7 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       recurrence_time_end,
       recurrence_valid_until,
       dietary_tags,
+      ...queueConfig,
     },
   };
 }

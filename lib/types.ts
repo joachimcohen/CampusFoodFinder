@@ -65,6 +65,14 @@ export interface Listing {
   recurrence_time_end: string | null;
   recurrence_valid_until: string | null;
   dietary_tags: DietaryTag[] | null;
+  queue_enabled: boolean;
+  queue_batch_size: number;
+  queue_no_show_minutes: number;
+  queue_capacity_cap: number | null;
+  queue_waiting_message: string | null;
+  queue_served_message: string | null;
+  queue_waiting_message_url: string | null;
+  queue_served_message_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -131,3 +139,74 @@ export const WEEKDAYS: Weekday[] = [
   "saturday",
   "sunday",
 ];
+
+// =========================================================
+// Virtual Queue
+// =========================================================
+
+export type QueueSessionStatus = "open" | "closed";
+export type QueueEntryStatus = "waiting" | "called" | "expired" | "served";
+
+export interface QueueSession {
+  id: string;
+  listing_id: string;
+  date: string;
+  status: QueueSessionStatus;
+  batch_size: number;
+  no_show_window_minutes: number;
+  capacity_cap: number | null;
+  created_at: string;
+}
+
+/**
+ * The shape returned to a student for their own ticket, or to staff for
+ * everyone in the session. `anonymous_token` is deliberately never included
+ * — the student already holds it locally, and staff never need to see it.
+ */
+export interface QueueEntry {
+  id: string;
+  session_id: string;
+  status: QueueEntryStatus;
+  joined_at: string;
+  called_at: string | null;
+  /** "Nth to join today" — stable for the life of the ticket, shown to both the student and staff so they can be matched up. */
+  ticket_number: number;
+  /** Rank among only those still waiting — omitted once called/served/expired, since it no longer applies. */
+  position?: number;
+}
+
+export interface QueueTicketStatus {
+  status: QueueEntryStatus;
+  ticketNumber: number;
+  position: number | null;
+  waitMinutesLabel: string | null;
+}
+
+export interface QueueStaffSnapshot {
+  session: QueueSession;
+  waiting: QueueEntry[];
+  called: QueueEntry[];
+  servedCount: number;
+  waitingCount: number;
+}
+
+// =========================================================
+// Admin Alerts
+// =========================================================
+
+export type AlertSeverity = "recall" | "advisory" | "general";
+
+export interface AdminAlert {
+  id: string;
+  message: string;
+  severity: AlertSeverity;
+  created_by: string;
+  created_at: string;
+  active: boolean;
+}
+
+export const ALERT_SEVERITY_LABELS: Record<AlertSeverity, string> = {
+  recall: "Recall",
+  advisory: "Advisory",
+  general: "General notice",
+};
