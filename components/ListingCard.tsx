@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Gift, Percent, Star, Repeat, PartyPopper, Navigation } from "lucide-react";
+import { Gift, Percent, Star, Repeat, PartyPopper, Navigation, ChevronDown, ChevronUp } from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
 import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
@@ -23,6 +24,7 @@ export default function ListingCard({
   listing: ListingWithRelations;
   mode: "happening-now" | "coming-up" | "weekly";
 }) {
+  const [expanded, setExpanded] = useState(false);
   const Icon = FOOD_TYPE_ICONS[listing.food_type];
   const timeLabel =
     mode === "happening-now"
@@ -41,6 +43,26 @@ export default function ListingCard({
         `${listing.vendor.name}, ${locationLabel}, ${listing.campus.name} Campus`
       )}`
     : null;
+
+  const locationLine = `${listing.vendor.name} · ${listing.campus.name}${locationLabel ? ` · ${locationLabel}` : ""}`;
+
+  const descRef = useRef<HTMLParagraphElement>(null);
+  const locationRef = useRef<HTMLParagraphElement>(null);
+  const [hasMoreToShow, setHasMoreToShow] = useState(false);
+
+  useEffect(() => {
+    // Only measurable while still clamped — an expanded paragraph never
+    // reports overflow, so skip re-measuring (and keep the last known
+    // answer) until it's collapsed again. Re-checks on resize since the
+    // feed's grid changes column width at each breakpoint, which changes
+    // whether either line actually overflows two lines.
+    if (expanded) return;
+    const overflowing = (el: HTMLElement | null) => !!el && el.scrollHeight > el.clientHeight + 1;
+    const measure = () => setHasMoreToShow(overflowing(descRef.current) || overflowing(locationRef.current));
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [expanded, listing.description, locationLine]);
 
   return (
     <article className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)]/40 hover:shadow-md">
@@ -69,10 +91,31 @@ export default function ListingCard({
           </span>
         </div>
         <h3 className="truncate font-semibold leading-tight">{listing.title}</h3>
-        <p className="line-clamp-2 text-sm leading-snug text-[var(--color-foreground)]/60">
-          {listing.vendor.name} · {listing.campus.name}
-          {locationLabel ? ` · ${locationLabel}` : ""}
+        {listing.description && (
+          <p
+            ref={descRef}
+            className={`text-sm leading-snug text-[var(--color-foreground)]/80 ${expanded ? "" : "line-clamp-2"}`}
+          >
+            {listing.description}
+          </p>
+        )}
+        <p
+          ref={locationRef}
+          className={`text-sm leading-snug text-[var(--color-foreground)]/70 ${expanded ? "" : "line-clamp-2"}`}
+        >
+          {locationLine}
         </p>
+        {hasMoreToShow && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="inline-flex w-fit items-center gap-0.5 text-xs font-semibold text-[var(--color-foreground)]/70"
+          >
+            {expanded ? "Show less" : "Show more"}
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        )}
         {directionsUrl && (
           <a
             href={directionsUrl}
