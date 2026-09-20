@@ -170,8 +170,20 @@ function VendorsTab({ vendors, campuses }: { vendors: PublicVendor[]; campuses: 
     )
       return;
     const supabase = createClient();
-    const { error } = await supabase.from("vendors").delete().eq("id", id);
-    if (error) alert(error.message);
+    const { data, error } = await supabase.from("vendors").delete().eq("id", id).select("id");
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    // A delete RLS silently excludes (e.g. an aal1 session) matches zero
+    // rows without ever raising `error` — without checking this, the vendor
+    // would look deleted here while the row (and its slug) was still live,
+    // quietly forcing anyone reinstated under the same name onto a
+    // collision-suffixed slug next time.
+    if (!data || data.length === 0) {
+      alert(`Could not delete ${vendorName} — the delete was blocked. Please try again or check your session.`);
+      return;
+    }
     router.refresh();
   }
 
