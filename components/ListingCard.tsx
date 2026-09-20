@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Gift, Percent, Star, Repeat, PartyPopper } from "lucide-react";
+import { Gift, Percent, Star, Repeat, PartyPopper, Navigation } from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
 import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
@@ -34,6 +34,13 @@ export default function ListingCard({
   // A listing's own pickup location (for vendors without a fixed spot) takes
   // priority over the vendor's general location when set.
   const locationLabel = listing.pickup_location ?? listing.vendor.location;
+  // Vendor name + location + campus gives Google Maps enough text to find
+  // the right spot even without a street address on file.
+  const directionsUrl = locationLabel
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+        `${listing.vendor.name}, ${locationLabel}, ${listing.campus.name} Campus`
+      )}`
+    : null;
 
   return (
     <article className="flex gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)]/40 hover:shadow-md">
@@ -66,6 +73,18 @@ export default function ListingCard({
           {listing.vendor.name} · {listing.campus.name}
           {locationLabel ? ` · ${locationLabel}` : ""}
         </p>
+        {directionsUrl && (
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-fit items-center gap-1 text-xs font-semibold underline"
+            style={{ color: "var(--color-accent)" }}
+          >
+            <Navigation size={12} strokeWidth={2.25} />
+            Directions
+          </a>
+        )}
         {timeLabel && (
           <p
             className={`text-xs font-medium ${
