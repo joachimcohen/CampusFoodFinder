@@ -12,11 +12,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const pin = generatePin();
   const pin_hash = await hashPin(pin);
 
-  const { error } = await admin.supabase
+  const { data, error } = await admin.supabase
     .from("vendors")
     .update({ pin_hash, failed_attempts: 0, locked_until: null })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // A vendor row that RLS silently excluded (e.g. an aal1 session, or a
+  // stale/deleted id) updates zero rows without ever raising `error` — check
+  // for that explicitly so the admin never sees a "new PIN" that was never
+  // actually saved.
+  if (!data) return NextResponse.json({ error: "Vendor not found or update was blocked." }, { status: 404 });
   return NextResponse.json({ pin });
 }
