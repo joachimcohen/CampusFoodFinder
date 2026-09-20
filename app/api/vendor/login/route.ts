@@ -15,10 +15,14 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  // Slugs are always generated lowercase (see lib/slugify.ts), but the URL
+  // — and so this slug — can arrive in whatever case someone typed or
+  // pasted it in, so normalize before the exact-match lookup rather than
+  // silently 401ing on a same-vendor, different-case URL.
   const { data: vendor, error: fetchError } = await supabase
     .from("vendors")
     .select("id, pin_hash, failed_attempts, locked_until, is_active")
-    .eq("slug", slug)
+    .eq("slug", slug.toLowerCase())
     .maybeSingle();
 
   if (fetchError) {
