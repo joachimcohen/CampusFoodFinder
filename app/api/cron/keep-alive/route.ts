@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { melbourneWeekStart } from "@/lib/listings";
+import { runCleanup } from "@/lib/cleanup";
 
 // Pinged daily by Vercel Cron (see vercel.json) to keep the Supabase project
-// active — free-tier Supabase projects pause after 7 days with no activity.
+// active — free-tier Supabase projects pause after 7 days with no activity —
+// and to run the daily data clean-up.
+//
+// Set CRON_SECRET in Vercel and Vercel sends it automatically, so only the
+// scheduled job can trigger this.
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
@@ -21,19 +25,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Privacy clean-up. Weekly claims (hashed random phone codes) are
-  // only needed for the current week, so anything from an earlier week is
-  // deleted. Label acknowledgements hold no identifiers but are trimmed
-  // after 14 days anyway.
-  const [claimsCleanup, acksCleanup] = await Promise.all([
-    supabase.from("listing_claims").delete().lt("week_start", melbourneWeekStart()),
-    supabase
-      .from("food_label_acks")
-      .delete()
-      .lt("acknowledged_at", new Date(Date.now() - 14 * 86_400_000).toISOString()),
-  ]);
-  if (claimsCleanup.error) console.error("claims clean-up failed", claimsCleanup.error);
-  if (acksCleanup.error) console.error("acks clean-up failed", acksCleanup.error);
+  // Daily clean-up: old listings and their photos, unused photos, past
+  // queues, last week's claims and old label ticks. See lib/cleanup.ts for
+  // the retention periods. Returns counts only.
+  const cleanup = await runCleanup(supabase);
 
-  return NextResponse.json({ ok: true, pinged_at: new Date().toISOString() });
+  return NextResponse.json({ ok: true, pinged_at: new Date().toISOString(), cleanup });
 }

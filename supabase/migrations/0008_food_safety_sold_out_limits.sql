@@ -106,6 +106,13 @@ create table if not exists listing_claims (
   unique (listing_id, week_start, device_hash)
 );
 
+-- Indexes for the daily clean-up (lib/cleanup.ts), so it stays quick as
+-- the tables grow.
+create index if not exists idx_listing_claims_week on listing_claims(week_start);
+create index if not exists idx_food_label_acks_time on food_label_acks(acknowledged_at);
+create index if not exists idx_queue_sessions_date on queue_sessions(date);
+create index if not exists idx_listings_expires_at on listings(expires_at) where schedule_type = 'one_time';
+
 alter table food_label_acks enable row level security;
 alter table listing_claims enable row level security;
 -- No policies: only the service-role key (API routes) touches these, the

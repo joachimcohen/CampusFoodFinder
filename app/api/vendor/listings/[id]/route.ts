@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionVendorId, isVendorActive } from "@/lib/vendor-auth";
 import { validateQueueConfig } from "@/lib/listing-input";
+import { removeListingPhoto } from "@/lib/cleanup";
 
 const QUEUE_FIELD_NAMES = [
   "queue_enabled",
@@ -111,7 +112,10 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Listing not found." }, { status: 404 });
   }
 
-  const { error } = await supabase.from("listings").delete().eq("id", id);
+  const { data: deleted, error } = await supabase.from("listings").delete().eq("id", id).select("photo_url").maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Remove the photo too, so it isn't left in storage. If this fails, the
+  // daily clean-up catches it as an unused photo.
+  await removeListingPhoto(supabase, deleted?.photo_url ?? null);
   return NextResponse.json({ ok: true });
 }
