@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import type { ListingWithRelations, QueueEntryStatus } from "@/lib/types";
 import { useQueueTicket } from "@/lib/use-queue-ticket";
+import { soldOutState } from "@/lib/listings";
+import FoodSafetyDialog, { type DialogMode } from "./FoodSafetyDialog";
 
 const STATUS_COPY: Record<QueueEntryStatus, { heading: string; sub: string }> = {
   waiting: { heading: "You're in the queue", sub: "We'll let you know when it's your turn." },
@@ -31,6 +34,35 @@ export default function QueueTicketPanel({
   compact?: boolean;
 }) {
   const { ticket, status, ticketNumber, position, waitLabel, joining, error, join } = useQueueTicket(listing.id);
+  const [dialog, setDialog] = useState<DialogMode | null>(null);
+
+  // A food safety label or student check must be completed in the pop-up
+  // before joining; otherwise join straight away as before.
+  const needsGate = listing.food_safety_enabled || listing.require_student_number;
+  const startJoin = () => (needsGate ? setDialog("queue") : join());
+
+  const dialogEl = dialog && (
+    <FoodSafetyDialog listing={listing} mode={dialog} onClose={() => setDialog(null)} onJoinQueue={join} />
+  );
+
+  // Full-page view: the label is always one tap away.
+  const labelButton = !compact && listing.food_safety_enabled && (
+    <button
+      type="button"
+      onClick={() => setDialog("view")}
+      className="min-h-11 rounded-xl border border-[var(--color-border)] text-sm font-semibold"
+    >
+      Food safety &amp; reheating
+    </button>
+  );
+
+  if (!ticket && soldOutState(listing) !== "none") {
+    return (
+      <p className={compact ? "mt-1 text-xs font-bold text-[var(--color-foreground)]/70" : "text-center font-bold"}>
+        Sold out
+      </p>
+    );
+  }
 
   if (!ticket) {
     return (
@@ -41,9 +73,9 @@ export default function QueueTicketPanel({
             when it&apos;s your turn.
           </p>
         )}
-        {error && <p className="text-xs text-[var(--color-destructive)]">{error}</p>}
+        {error && !dialog && <p className="text-xs text-[var(--color-destructive)]">{error}</p>}
         <button
-          onClick={join}
+          onClick={startJoin}
           disabled={joining}
           className={
             compact
@@ -53,6 +85,8 @@ export default function QueueTicketPanel({
         >
           {joining ? "Joining…" : "Join queue"}
         </button>
+        {labelButton}
+        {dialogEl}
       </div>
     );
   }
@@ -100,13 +134,14 @@ export default function QueueTicketPanel({
 
         {status === "expired" && (
           <button
-            onClick={join}
+            onClick={startJoin}
             disabled={joining}
             className="mt-1 inline-flex min-h-8 w-fit items-center rounded-full bg-[var(--color-accent)] px-3 text-xs font-semibold text-white disabled:opacity-50"
           >
             {joining ? "Rejoining…" : "Rejoin queue"}
           </button>
         )}
+        {dialogEl}
       </div>
     );
   }
@@ -154,13 +189,15 @@ export default function QueueTicketPanel({
 
       {status === "expired" && (
         <button
-          onClick={join}
+          onClick={startJoin}
           disabled={joining}
           className="mt-3 min-h-11 rounded-xl bg-[var(--color-primary)] font-semibold text-[var(--color-on-primary)] disabled:opacity-50"
         >
           {joining ? "Rejoining…" : "Rejoin queue"}
         </button>
       )}
+      <div className="mt-3 flex w-full flex-col">{labelButton}</div>
+      {dialogEl}
     </div>
   );
 }

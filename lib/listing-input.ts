@@ -1,5 +1,5 @@
-import type { DietaryTag, FoodType, ScheduleType, Weekday } from "@/lib/types";
-import { DIETARY_TAGS, WEEKDAYS } from "@/lib/types";
+import type { DietaryTag, FoodStorage, FoodType, ScheduleType, Weekday } from "@/lib/types";
+import { DIETARY_TAGS, FOOD_STORAGES, WEEKDAYS } from "@/lib/types";
 
 const FOOD_TYPES: FoodType[] = [
   "free_giveaway",
@@ -33,6 +33,14 @@ export interface ListingInput {
   queue_served_message: string | null;
   queue_waiting_message_url: string | null;
   queue_served_message_url: string | null;
+  food_safety_enabled: boolean;
+  food_storage: FoodStorage | null;
+  food_eat_within_hours: number | null;
+  food_reheat_instructions: string | null;
+  food_allergens: string | null;
+  food_donor_declared_at: string | null;
+  limit_one_per_week: boolean;
+  require_student_number: boolean;
 }
 
 /** A bare `http(s)://` prefix check — enough to stop obviously-broken input (javascript:, plain text) without a full URL-parsing dependency. */
@@ -120,6 +128,67 @@ export function validateQueueConfig(
   };
 }
 
+function optionalText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
+/**
+ * Validates the food safety label fields. When enabled, the vendor must
+ * choose a storage option and tick the donor declaration — under the
+ * Wrongs Act 1958 (Vic) Part VIB a donor is expected to pass on handling
+ * requirements and any time limit, so those are what the label carries.
+ */
+export function validateFoodSafety(
+  b: Record<string, unknown>
+):
+  | { error: string }
+  | {
+      food_safety_enabled: boolean;
+      food_storage: FoodStorage | null;
+      food_eat_within_hours: number | null;
+      food_reheat_instructions: string | null;
+      food_allergens: string | null;
+      food_donor_declared_at: string | null;
+    } {
+  if (b.food_safety_enabled !== true) {
+    return {
+      food_safety_enabled: false,
+      food_storage: null,
+      food_eat_within_hours: null,
+      food_reheat_instructions: null,
+      food_allergens: null,
+      food_donor_declared_at: null,
+    };
+  }
+
+  if (typeof b.food_storage !== "string" || !FOOD_STORAGES.includes(b.food_storage as FoodStorage)) {
+    return { error: "Choose how students should store this food." };
+  }
+
+  let eatWithin: number | null = null;
+  if (b.food_eat_within_hours !== null && b.food_eat_within_hours !== undefined && b.food_eat_within_hours !== "") {
+    eatWithin = Number(b.food_eat_within_hours);
+    if (!Number.isInteger(eatWithin) || eatWithin < 1 || eatWithin > 168) {
+      return { error: "\"Eat within\" must be a whole number of hours between 1 and 168." };
+    }
+  }
+
+  if (b.food_donor_declaration !== true) {
+    return { error: "Please tick the donor declaration to add a food safety label." };
+  }
+
+  return {
+    food_safety_enabled: true,
+    food_storage: b.food_storage as FoodStorage,
+    food_eat_within_hours: eatWithin,
+    food_reheat_instructions: optionalText(b.food_reheat_instructions, 500),
+    food_allergens: optionalText(b.food_allergens, 200),
+    food_donor_declared_at: new Date().toISOString(),
+  };
+}
+
 /** Validates a raw listing payload from the client. Returns an error string, or null if valid. */
 export function validateListingInput(body: unknown): { input: ListingInput } | { error: string } {
   if (typeof body !== "object" || body === null) return { error: "Invalid request body." };
@@ -188,6 +257,9 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
   const queueConfig = validateQueueConfig(b);
   if ("error" in queueConfig) return queueConfig;
 
+  const foodSafety = validateFoodSafety(b);
+  if ("error" in foodSafety) return foodSafety;
+
   return {
     input: {
       food_type: b.food_type as FoodType,
@@ -206,6 +278,9 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       recurrence_valid_until,
       dietary_tags,
       ...queueConfig,
+      ...foodSafety,
+      limit_one_per_week: b.limit_one_per_week === true,
+      require_student_number: b.require_student_number === true,
     },
   };
 }

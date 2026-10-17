@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  // Only is_active and the virtual-queue config fields can be patched here —
+  // Only is_active, sold-out state and the virtual-queue config fields can be patched here —
   // everything else about a listing requires recreating it (see
   // app/vendor/[vendorSlug]/page.tsx, which has no "edit" flow beyond these).
   const update: Record<string, unknown> = {};
@@ -48,6 +48,32 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "is_active must be true or false." }, { status: 400 });
     }
     update.is_active = body.is_active;
+  }
+
+  // Sold out: closes the listing to new claims but keeps it visible (greyed)
+  // for sold_out_visible_hours (default 12). Undo clears it; extend adds 12h.
+  if ("sold_out" in body) {
+    if (typeof body.sold_out !== "boolean") {
+      return NextResponse.json({ error: "sold_out must be true or false." }, { status: 400 });
+    }
+    update.sold_out_at = body.sold_out ? new Date().toISOString() : null;
+    if (!body.sold_out) update.sold_out_visible_hours = 12;
+  }
+
+  if ("extend_sold_out" in body) {
+    const { data: current } = await supabase
+      .from("listings")
+      .select("sold_out_at, sold_out_visible_hours")
+      .eq("id", id)
+      .maybeSingle();
+    if (!current?.sold_out_at) {
+      return NextResponse.json({ error: "This listing isn't marked sold out." }, { status: 400 });
+    }
+    const extended = (current.sold_out_visible_hours ?? 12) + 12;
+    if (extended > 72) {
+      return NextResponse.json({ error: "Sold-out listings can stay visible for up to 72 hours." }, { status: 400 });
+    }
+    update.sold_out_visible_hours = extended;
   }
 
   if (QUEUE_FIELD_NAMES.some((name) => name in body)) {

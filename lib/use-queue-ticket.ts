@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { QueueEntryStatus } from "@/lib/types";
 import { subscribeToPush } from "@/lib/push-client";
+import { getDeviceId } from "@/lib/collect-client";
 
 export type Ticket = { ticketId: string; token: string };
 
@@ -25,7 +26,11 @@ function loadTicket(listingId: string): Ticket | null {
 }
 
 function saveTicket(listingId: string, ticket: Ticket) {
-  localStorage.setItem(storageKey(listingId), JSON.stringify(ticket));
+  try {
+    localStorage.setItem(storageKey(listingId), JSON.stringify(ticket));
+  } catch {
+    // Private browsing: the ticket still works until the page is closed.
+  }
 }
 
 /**
@@ -82,32 +87,48 @@ export function useQueueTicket(listingId: string) {
     };
   }, [ticket, poll]);
 
-  const join = useCallback(async () => {
-    setJoining(true);
-    setError(null);
-    // Best-effort — if permission is denied or push isn't supported, this
-    // resolves to null and the student still joins normally, falling back
-    // to the on-page polling to see their status update.
-    const pushSubscriptionId = await subscribeToPush();
-    const res = await fetch("/api/queue/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId, pushSubscriptionId }),
-    });
-    const body = await res.json();
-    setJoining(false);
-    if (!res.ok) {
-      setError(body.error ?? "Could not join the queue. Please try again.");
-      return;
-    }
-    const newTicket = { ticketId: body.ticketId, token: body.token };
-    saveTicket(listingId, newTicket);
-    setStatus(null);
-    setTicketNumber(null);
-    setPosition(null);
-    setWaitLabel(null);
-    setTicket(newTicket);
-  }, [listingId]);
+  /**
+   * Joins the queue. `answers` carries the acknowledged label version and
+   * student number when the listing asks for them. Resolves to an error
+   * message, or null on success, so the food safety pop-up can show it.
+   */
+  const join = useCallback(
+    async (answers?: { labelVersion: number | null; studentNumber: string | null }): Promise<string | null> => {
+      setJoining(true);
+      setError(null);
+      // Best-effort — if permission is denied or push isn't supported, this
+      // resolves to null and the student still joins normally, falling back
+      // to the on-page polling to see their status update.
+      const pushSubscriptionId = await subscribeToPush();
+      const res = await fetch("/api/queue/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId,
+          pushSubscriptionId,
+          deviceId: getDeviceId(),
+          labelVersion: answers?.labelVersion ?? null,
+          studentNumber: answers?.studentNumber ?? null,
+        }),
+      }).catch(() => null);
+      const body = res ? await res.json().catch(() => ({})) : {};
+      setJoining(false);
+      if (!res || !res.ok) {
+        const message = body.error ?? "Could not join the queue. Please try again.";
+        setError(message);
+        return message;
+      }
+      const newTicket = { ticketId: body.ticketId, token: body.token };
+      saveTicket(listingId, newTicket);
+      setStatus(null);
+      setTicketNumber(null);
+      setPosition(null);
+      setWaitLabel(null);
+      setTicket(newTicket);
+      return null;
+    },
+    [listingId]
+  );
 
   return { ticket, status, ticketNumber, position, waitLabel, joining, error, join };
 }
