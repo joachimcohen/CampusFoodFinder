@@ -83,7 +83,6 @@ export interface Listing {
   sold_out_at: string | null;
   sold_out_visible_hours: number;
   limit_one_per_week: boolean;
-  require_student_number: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;

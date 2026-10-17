@@ -15,7 +15,7 @@ export default function FoodSafetyLabel({ listing, vendorName }: { listing: Labe
     <section className="overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)]">
       <h3 className="flex items-center gap-2 bg-[var(--color-foreground)] px-4 py-2 text-sm font-bold text-white">
         <ShieldCheck size={18} aria-hidden="true" />
-        Food safety &amp; reheating
+        Keep yourself safe: storage &amp; reheating
       </h3>
       <dl className="flex flex-col gap-3 p-4 text-sm">
         {eatWithin && (
@@ -43,8 +43,8 @@ export default function FoodSafetyLabel({ listing, vendorName }: { listing: Labe
           </div>
         )}
         <p className="text-xs leading-snug text-[var(--color-foreground)]/70">
-          Donated by {vendorName}, who has declared this food was safe when handed over. Once you collect it,
-          storing it properly and eating it in time is up to you.
+          These steps help you avoid getting sick. {vendorName} has confirmed this food was handled safely and is
+          safe to eat when you collect it.
         </p>
       </dl>
     </section>

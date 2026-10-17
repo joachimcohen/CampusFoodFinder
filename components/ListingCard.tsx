@@ -59,11 +59,9 @@ export default function ListingCard({
   }
 
   const soldOut = mode === "sold-out";
-  // Walk-up listings (no queue) that need the label, an ID check or a
-  // weekly limit get a "Collect" button that produces a show-this-screen pass.
-  const walkUpGate =
-    !listing.queue_enabled &&
-    (listing.food_safety_enabled || listing.limit_one_per_week || listing.require_student_number);
+  // Walk-up listings (no queue) with a label or a weekly limit get a
+  // "Collect" button that produces a show-this-screen pass.
+  const walkUpGate = !listing.queue_enabled && (listing.food_safety_enabled || listing.limit_one_per_week);
   const collectedThisWeek = listing.limit_one_per_week && passIsCurrent;
   const Icon = FOOD_TYPE_ICONS[listing.food_type];
   const timeLabel = soldOut

@@ -13,7 +13,7 @@ import type { Listing } from "@/lib/types";
  *
  * When the listing has a food safety label, the student must have
  * acknowledged the current version of it (labelVersion) before joining.
- * Weekly limits and student ID checks are applied here too (lib/claims.ts).
+ * The one-per-week limit is applied here too (lib/claims.ts).
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
 
   const claim = await checkAndClaim(supabase, typed, {
     deviceId: body?.deviceId,
-    studentNumber: body?.studentNumber,
     labelVersion: body?.labelVersion,
   });
   if ("error" in claim) {
@@ -78,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  let ack: { ackCode: string; acknowledgedAt: string } | null = null;
+  let ack: { acknowledgedAt: string } | null = null;
   if (typed.food_safety_enabled) {
     ack = await recordAck(supabase, typed, entry.id);
   }
@@ -88,7 +87,6 @@ export async function POST(req: NextRequest) {
       ticketId: entry.id,
       token,
       sessionId: session.id,
-      ackCode: ack?.ackCode ?? null,
       acknowledgedAt: ack?.acknowledgedAt ?? null,
     },
     { status: 201 }

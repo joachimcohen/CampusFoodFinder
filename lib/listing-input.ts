@@ -40,7 +40,6 @@ export interface ListingInput {
   food_allergens: string | null;
   food_donor_declared_at: string | null;
   limit_one_per_week: boolean;
-  require_student_number: boolean;
 }
 
 /** A bare `http(s)://` prefix check — enough to stop obviously-broken input (javascript:, plain text) without a full URL-parsing dependency. */
@@ -280,7 +279,6 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       ...queueConfig,
       ...foodSafety,
       limit_one_per_week: b.limit_one_per_week === true,
-      require_student_number: b.require_student_number === true,
     },
   };
 }

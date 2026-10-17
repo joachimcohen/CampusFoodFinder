@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ListingWithRelations } from "@/lib/types";
 import QueueStatus from "@/components/QueueStatus";
+import StudentGate from "@/components/StudentGate";
 
 export const revalidate = 0;
 
@@ -20,5 +21,9 @@ export default async function QueuePage({ params }: Props) {
   const typedListing = listing as unknown as ListingWithRelations | null;
   if (!typedListing || !typedListing.queue_enabled) notFound();
 
-  return <QueueStatus listing={typedListing} />;
+  return (
+    <StudentGate>
+      <QueueStatus listing={typedListing} />
+    </StudentGate>
+  );
 }

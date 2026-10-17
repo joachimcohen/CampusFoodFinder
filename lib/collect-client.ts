@@ -23,7 +23,6 @@ export function getDeviceId(): string | null {
 }
 
 export type SavedPass = {
-  ackCode: string;
   acknowledgedAt: string;
   labelVersion: number | null;
   weekStart: string;
@@ -38,32 +37,10 @@ export function loadPass(listingId: string): SavedPass | null {
     const raw = localStorage.getItem(passKey(listingId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return typeof parsed?.ackCode === "string" ? (parsed as SavedPass) : null;
+    return typeof parsed?.acknowledgedAt === "string" ? (parsed as SavedPass) : null;
   } catch {
     return null;
   }
-}
-
-/**
- * Student card photos live only in this page's memory (an object URL), never
- * in storage and never uploaded. Reloading or closing the page discards them.
- */
-const cardPhotos = new Map<string, string>();
-
-export function setCardPhoto(listingId: string, file: File | null): string | null {
-  const previous = cardPhotos.get(listingId);
-  if (previous) URL.revokeObjectURL(previous);
-  if (!file) {
-    cardPhotos.delete(listingId);
-    return null;
-  }
-  const url = URL.createObjectURL(file);
-  cardPhotos.set(listingId, url);
-  return url;
-}
-
-export function getCardPhoto(listingId: string): string | null {
-  return cardPhotos.get(listingId) ?? null;
 }
 
 export function savePass(listingId: string, pass: SavedPass) {

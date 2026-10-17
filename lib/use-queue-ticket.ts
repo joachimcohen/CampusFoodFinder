@@ -88,12 +88,12 @@ export function useQueueTicket(listingId: string) {
   }, [ticket, poll]);
 
   /**
-   * Joins the queue. `answers` carries the acknowledged label version and
-   * student number when the listing asks for them. Resolves to an error
+   * Joins the queue. `answers` carries the acknowledged label version when
+   * the listing has a food safety label. Resolves to an error
    * message, or null on success, so the food safety pop-up can show it.
    */
   const join = useCallback(
-    async (answers?: { labelVersion: number | null; studentNumber: string | null }): Promise<string | null> => {
+    async (answers?: { labelVersion: number | null }): Promise<string | null> => {
       setJoining(true);
       setError(null);
       // Best-effort — if permission is denied or push isn't supported, this
@@ -108,7 +108,6 @@ export function useQueueTicket(listingId: string) {
           pushSubscriptionId,
           deviceId: getDeviceId(),
           labelVersion: answers?.labelVersion ?? null,
-          studentNumber: answers?.studentNumber ?? null,
         }),
       }).catch(() => null);
       const body = res ? await res.json().catch(() => ({})) : {};

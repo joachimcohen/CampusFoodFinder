@@ -1,14 +1,13 @@
--- Food safety labels, "sold out but still visible", and optional per-listing
--- collection limits (one per device or one per student number per week).
+-- Food safety labels, "sold out but still visible", and an optional
+-- one-per-week collection limit.
 --
 -- Purely additive: every new listing column defaults to "off", so existing
 -- listings behave exactly as before until a vendor opts in.
 --
--- Privacy design: no student names, emails or raw student numbers are ever
--- stored. A device is identified by a random code the browser generates; a
--- student number (only when a listing requires one) is reduced server-side
--- to a keyed hash (HMAC with STUDENT_ID_HASH_SECRET) before it touches the
--- database. Both are deleted after 14 days by the daily cron.
+-- Privacy design: no student data is stored anywhere. Student numbers are
+-- only checked on the student's own phone and never sent to the server. The
+-- weekly limit uses a random code the browser makes up (stored here only as
+-- a hash), deleted by the daily cron once the week is over.
 
 -- =========================================================
 -- Listing columns
@@ -34,7 +33,6 @@ alter table listings add column if not exists sold_out_visible_hours integer not
 
 -- Collection limits
 alter table listings add column if not exists limit_one_per_week boolean not null default false;
-alter table listings add column if not exists require_student_number boolean not null default false;
 
 -- =========================================================
 -- Label version trigger
@@ -83,13 +81,12 @@ create policy "listings_public_select" on listings
 -- =========================================================
 
 -- Proof that the label was shown and acknowledged. Deliberately holds no
--- device or student identifier: just which label version, when, and the
--- short code shown on the student's screen.
+-- device or student identifier: just which listing, which label version and
+-- when (plus the anonymous queue ticket, for queue listings).
 create table if not exists food_label_acks (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references listings(id) on delete cascade,
   label_version integer not null,
-  ack_code text not null,
   queue_entry_id uuid references queue_entries(id) on delete set null,
   acknowledged_at timestamptz not null default now()
 );
@@ -98,20 +95,16 @@ create index if not exists idx_food_label_acks_listing on food_label_acks(listin
 
 -- One row per collection on a limited listing. week_start is the Monday
 -- (Melbourne date) the claim falls in, so the limit resets every Monday.
+-- device_hash is a hash of a random code the phone made up: it is not
+-- linked to the student in any way.
 create table if not exists listing_claims (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references listings(id) on delete cascade,
   week_start date not null,
-  device_hash text,
-  student_hash text,
+  device_hash text not null,
   claimed_at timestamptz not null default now(),
-  constraint listing_claims_has_identifier check (device_hash is not null or student_hash is not null)
+  unique (listing_id, week_start, device_hash)
 );
-
-create unique index if not exists uq_listing_claims_device
-  on listing_claims(listing_id, week_start, device_hash) where device_hash is not null;
-create unique index if not exists uq_listing_claims_student
-  on listing_claims(listing_id, week_start, student_hash) where student_hash is not null;
 
 alter table food_label_acks enable row level security;
 alter table listing_claims enable row level security;

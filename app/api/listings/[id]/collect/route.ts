@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkAndClaim, generateAckCode, recordAck, undoClaim } from "@/lib/claims";
+import { checkAndClaim, recordAck, undoClaim } from "@/lib/claims";
 import type { Listing } from "@/lib/types";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 /**
- * Walk-up collection (no virtual queue). The student acknowledges the food
- * safety label and/or passes the student ID check on their phone, and this
- * returns a short code for the "show this screen" pass they hold up to staff.
- * No login and nothing personal stored; see lib/claims.ts.
+ * Walk-up collection (no virtual queue). The student ticks the food safety
+ * label (and/or is within the weekly limit) and gets a "show this screen"
+ * pass with the food, today's date and a live clock. No login and nothing
+ * personal stored; see lib/claims.ts.
  */
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "This one uses the virtual queue. Please join the queue instead." }, { status: 400 });
   }
 
-  const claim = await checkAndClaim(supabase, typed, body);
+  const claim = await checkAndClaim(supabase, typed, { deviceId: body.deviceId, labelVersion: body.labelVersion });
   if ("error" in claim) {
     return NextResponse.json({ error: claim.error, code: claim.code }, { status: claim.status });
   }
@@ -42,9 +42,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ ...ack, labelVersion: typed.food_label_version }, { status: 201 });
   }
 
-  // No label (limit or ID check only): still give a pass code, nothing to record.
-  return NextResponse.json(
-    { ackCode: generateAckCode(), acknowledgedAt: new Date().toISOString(), labelVersion: null },
-    { status: 201 }
-  );
+  // Weekly limit only, no label: still give a pass, nothing to record.
+  return NextResponse.json({ acknowledgedAt: new Date().toISOString(), labelVersion: null }, { status: 201 });
 }

@@ -39,7 +39,6 @@ const emptyForm = {
   food_allergens: "",
   food_donor_declaration: false,
   limit_one_per_week: false,
-  require_student_number: false,
 };
 
 export default function VendorPage({ params }: Props) {
@@ -169,7 +168,6 @@ export default function VendorPage({ params }: Props) {
       food_allergens: form.food_safety_enabled ? form.food_allergens || null : null,
       food_donor_declaration: form.food_safety_enabled && form.food_donor_declaration,
       limit_one_per_week: form.limit_one_per_week,
-      require_student_number: form.require_student_number,
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -621,7 +619,7 @@ export default function VendorPage({ params }: Props) {
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
-          <span className="text-sm font-medium">Collection limits (optional)</span>
+          <span className="text-sm font-medium">Collection limit (optional)</span>
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -629,16 +627,7 @@ export default function VendorPage({ params }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, limit_one_per_week: e.target.checked }))}
               className="mt-0.5"
             />
-            <span>One per student per week (resets Monday). Uses a random code on the phone, or the student number if required below.</span>
-          </label>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.require_student_number}
-              onChange={(e) => setForm((f) => ({ ...f, require_student_number: e.target.checked }))}
-              className="mt-0.5"
-            />
-            <span>Deakin students only: require a student number (format check) and, for walk-up food, a card photo that stays on the student&apos;s phone.</span>
+            <span>One per student per week (resets Monday 12am). Matched to the student&apos;s phone, not to them.</span>
           </label>
         </div>
 

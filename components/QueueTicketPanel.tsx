@@ -36,9 +36,9 @@ export default function QueueTicketPanel({
   const { ticket, status, ticketNumber, position, waitLabel, joining, error, join } = useQueueTicket(listing.id);
   const [dialog, setDialog] = useState<DialogMode | null>(null);
 
-  // A food safety label or student check must be completed in the pop-up
-  // before joining; otherwise join straight away as before.
-  const needsGate = listing.food_safety_enabled || listing.require_student_number;
+  // A food safety label must be read and ticked in the pop-up before
+  // joining; otherwise join straight away as before.
+  const needsGate = listing.food_safety_enabled;
   const startJoin = () => (needsGate ? setDialog("queue") : join());
 
   const dialogEl = dialog && (

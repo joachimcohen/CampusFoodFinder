@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Privacy clean-up. Weekly claims (device / student-number hashes) are
+  // Privacy clean-up. Weekly claims (hashed random phone codes) are
   // only needed for the current week, so anything from an earlier week is
   // deleted. Label acknowledgements hold no identifiers but are trimmed
   // after 14 days anyway.
