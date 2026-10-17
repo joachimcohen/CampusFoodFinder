@@ -4,10 +4,11 @@
  * gentle "students only" check, not proof of enrolment (that would need
  * Deakin's own sign-in). The number is never sent to the server.
  *
- * The pattern is configurable so it can be corrected without a code change.
- * Defaults to 9 digits: confirm against a real Deakin student card.
+ * The pattern is configurable so it can be tightened without a code change.
+ * Defaults to a lenient 6 to 10 digits, because a wrong strict pattern would
+ * lock every student out. Tighten it once confirmed against a real card.
  */
-const DEFAULT_PATTERN = "^\\d{9}$";
+const DEFAULT_PATTERN = "^\\d{6,10}$";
 
 function pattern(): RegExp {
   const raw = process.env.NEXT_PUBLIC_STUDENT_NUMBER_PATTERN || DEFAULT_PATTERN;

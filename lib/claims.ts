@@ -39,6 +39,10 @@ export async function checkAndClaim(
     return { error: "Sorry, this one has sold out.", status: 409, code: "sold_out" };
   }
 
+  if (listing.food_safety_enabled && (req.labelVersion === null || req.labelVersion === undefined)) {
+    return { error: "Please read and tick the food safety details first.", status: 409, code: "label_required" };
+  }
+
   if (listing.food_safety_enabled && Number(req.labelVersion) !== listing.food_label_version) {
     return {
       error: "The food safety details have just been updated. Please read them again.",

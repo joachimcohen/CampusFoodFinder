@@ -43,8 +43,8 @@ export default function FoodSafetyLabel({ listing, vendorName }: { listing: Labe
           </div>
         )}
         <p className="text-xs leading-snug text-[var(--color-foreground)]/70">
-          These steps help you avoid getting sick. {vendorName} has confirmed this food was handled safely and is
-          safe to eat when you collect it.
+          These steps help you avoid getting sick. The vendor ({vendorName}) has confirmed this food was handled
+          safely and is safe to eat when you collect it.
         </p>
       </dl>
     </section>

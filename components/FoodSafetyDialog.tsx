@@ -44,9 +44,11 @@ export default function FoodSafetyDialog({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // No close() in a cleanup: React's dev double-mount would fire the
+    // dialog's close event and dismiss it straight away. Unmounting removes
+    // the element, which ends the modal anyway.
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
-    return () => dialog?.close();
   }, []);
 
   const needsLabel = listing.food_safety_enabled;

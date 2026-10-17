@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UtensilsCrossed } from "lucide-react";
+import { ExternalLink, UtensilsCrossed } from "lucide-react";
 import { isValidStudentNumber } from "@/lib/student-number";
 
-const CONFIRMED_KEY = "cff_student_confirmed";
+// Bump the version if the wording below changes, so everyone re-agrees.
+const CONFIRMED_KEY = "cff_student_confirmed_v2";
+
+const WRONGS_ACT_URL = "https://www.legislation.vic.gov.au/in-force/acts/wrongs-act-1958";
+const FOODBANK_FIND_FOOD_URL = "https://findfood.foodbank.org.au/vic";
 
 function readConfirmed(): boolean {
   try {
@@ -24,14 +28,19 @@ function writeConfirmed() {
 
 /**
  * "This Food Finder is for Deakin students only." Shown once per phone,
- * before the feed or a queue page. We trust students to be honest: the
- * number is only format-checked here on the phone and is never sent to the
- * server or saved. All the phone remembers is that the check was done.
+ * before the feed or a queue page. Two ticks: that they're a Deakin student,
+ * and that they understand how donated food works in Victoria (the vendor
+ * hands it over safe, then looking after it is up to them).
+ *
+ * We trust students to be honest: the number is only format-checked here on
+ * the phone and is never sent to the server or saved. All the phone
+ * remembers is that the check was done.
  */
 export default function StudentGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"checking" | "ask" | "ok">("checking");
   const [studentNumber, setStudentNumber] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [agreedFood, setAgreedFood] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time localStorage read on mount
@@ -45,7 +54,7 @@ export default function StudentGate({ children }: { children: React.ReactNode })
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!numberOk || !confirmed) return;
+    if (!numberOk || !confirmed || !agreedFood) return;
     writeConfirmed();
     setStudentNumber("");
     setState("ok");
@@ -87,17 +96,63 @@ export default function StudentGate({ children }: { children: React.ReactNode })
           <span>I&apos;m a current Deakin student and this is my student number.</span>
         </label>
 
+        <section aria-labelledby="food-terms-heading" className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] p-4">
+          <h2 id="food-terms-heading" className="text-base font-bold">
+            About the food
+          </h2>
+          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed">
+            <li>Food here is given free, in good faith, by the vendor listed on it.</li>
+            <li>
+              The vendor makes sure it&apos;s safe when they hand it over, and tells you how to store it and when to
+              eat it by.
+            </li>
+            <li>
+              Once you take it, looking after it is up to you: follow the directions, eat it in time, and check the
+              allergens.
+            </li>
+            <li>If something looks, smells or tastes wrong, don&apos;t eat it.</li>
+          </ul>
+          <a
+            href={WRONGS_ACT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-fit items-center gap-1 text-xs font-semibold underline"
+            style={{ color: "var(--color-accent)" }}
+          >
+            The Victorian law on donated food (Wrongs Act 1958, Part VIB)
+            <ExternalLink size={12} aria-hidden="true" />
+          </a>
+          <label className="mt-1 flex items-start gap-3 rounded-xl bg-[var(--color-muted)] p-3 text-sm">
+            <input
+              type="checkbox"
+              checked={agreedFood}
+              onChange={(e) => setAgreedFood(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary)]"
+            />
+            <span>I understand, and I&apos;ll look after any food I collect and use it sensibly.</span>
+          </label>
+        </section>
+
         <div className="flex-1" />
         <p className="text-xs leading-relaxed text-[var(--color-foreground)]/70">
           Your number is only checked on this phone. It&apos;s never sent to us or saved anywhere.
         </p>
         <button
           type="submit"
-          disabled={!numberOk || !confirmed}
+          disabled={!numberOk || !confirmed || !agreedFood}
           className="min-h-12 rounded-xl bg-[var(--color-primary)] text-base font-semibold text-[var(--color-on-primary)] disabled:opacity-40"
         >
           Find free food
         </button>
+        <a
+          href={FOODBANK_FIND_FOOD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center justify-center gap-1 text-sm underline"
+        >
+          Not a Deakin student? Find food help near you with Foodbank
+          <ExternalLink size={14} aria-hidden="true" />
+        </a>
       </form>
     </main>
   );
