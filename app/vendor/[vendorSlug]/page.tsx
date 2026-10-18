@@ -2,7 +2,16 @@
 
 import { use, useEffect, useState } from "react";
 import type { DietaryTag, FoodStorage, FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
-import { DIETARY_TAGS, DIETARY_TAG_LABELS, FOOD_STORAGES, FOOD_STORAGE_LABELS, FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
+import {
+  ALLERGEN_OPTIONS,
+  DIETARY_TAGS,
+  DIETARY_TAG_LABELS,
+  FOOD_STORAGES,
+  FOOD_STORAGE_LABELS,
+  FOOD_TYPE_LABELS,
+  REHEAT_OPTIONS,
+  WEEKDAYS,
+} from "@/lib/types";
 import { soldOutState } from "@/lib/listings";
 import VendorQueueManager from "@/components/VendorQueueManager";
 
@@ -35,11 +44,18 @@ const emptyForm = {
   food_safety_enabled: false,
   food_storage: "fridge" as FoodStorage,
   food_eat_within_hours: "",
-  food_reheat_instructions: "",
-  food_allergens: "",
+  food_reheat_ticks: [] as string[],
+  food_reheat_other: "",
+  food_allergen_ticks: [] as string[],
+  food_allergen_other: "",
   food_donor_declaration: false,
   limit_one_per_week: false,
 };
+
+/** Adds or removes one tick-box value. */
+function toggle(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
 
 export default function VendorPage({ params }: Props) {
   const { vendorSlug } = use(params);
@@ -164,8 +180,14 @@ export default function VendorPage({ params }: Props) {
       food_storage: form.food_safety_enabled ? form.food_storage : null,
       food_eat_within_hours:
         form.food_safety_enabled && form.food_eat_within_hours !== "" ? Number(form.food_eat_within_hours) : null,
-      food_reheat_instructions: form.food_safety_enabled ? form.food_reheat_instructions || null : null,
-      food_allergens: form.food_safety_enabled ? form.food_allergens || null : null,
+      // Ticked options plus anything typed in "Other": reheating one per
+      // line, allergens as a comma-separated list.
+      food_reheat_instructions: form.food_safety_enabled
+        ? [...form.food_reheat_ticks, form.food_reheat_other.trim()].filter(Boolean).join("\n") || null
+        : null,
+      food_allergens: form.food_safety_enabled
+        ? [...form.food_allergen_ticks, form.food_allergen_other.trim()].filter(Boolean).join(", ") || null
+        : null,
       food_donor_declaration: form.food_safety_enabled && form.food_donor_declaration,
       limit_one_per_week: form.limit_one_per_week,
     };
@@ -554,7 +576,7 @@ export default function VendorPage({ params }: Props) {
                 Students must read and tick this label before they can join the queue or collect. It also
                 records that you passed on storage and time-limit details when donating.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm font-medium">
                   Storage
                   <select
@@ -582,25 +604,54 @@ export default function VendorPage({ params }: Props) {
                   />
                 </label>
               </div>
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                Reheating instructions (optional)
-                <textarea
-                  value={form.food_reheat_instructions}
-                  onChange={(e) => setForm((f) => ({ ...f, food_reheat_instructions: e.target.value }))}
-                  className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
-                  rows={2}
-                  placeholder="e.g. Reheat once only, until steaming hot all the way through"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                Contains / allergens (optional)
-                <input
-                  value={form.food_allergens}
-                  onChange={(e) => setForm((f) => ({ ...f, food_allergens: e.target.value }))}
-                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
-                  placeholder="e.g. Dairy, nuts, gluten"
-                />
-              </label>
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-medium">Reheating (tick any that apply)</legend>
+                {REHEAT_OPTIONS.map((opt) => (
+                  <label key={opt} className="flex min-h-11 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.food_reheat_ticks.includes(opt)}
+                      onChange={() => setForm((f) => ({ ...f, food_reheat_ticks: toggle(f.food_reheat_ticks, opt) }))}
+                      className="h-5 w-5"
+                    />
+                    {opt}
+                  </label>
+                ))}
+                <label className="flex flex-col gap-1 text-sm">
+                  Other reheating instructions (optional)
+                  <input
+                    value={form.food_reheat_other}
+                    onChange={(e) => setForm((f) => ({ ...f, food_reheat_other: e.target.value }))}
+                    className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                    placeholder="e.g. Microwave for 2 minutes"
+                  />
+                </label>
+              </fieldset>
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-medium">May contain (tick any that apply)</legend>
+                <div className="flex flex-wrap gap-x-5">
+                  {ALLERGEN_OPTIONS.map((opt) => (
+                    <label key={opt} className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.food_allergen_ticks.includes(opt)}
+                        onChange={() => setForm((f) => ({ ...f, food_allergen_ticks: toggle(f.food_allergen_ticks, opt) }))}
+                        className="h-5 w-5"
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+                <label className="flex flex-col gap-1 text-sm">
+                  Other allergens (optional)
+                  <input
+                    value={form.food_allergen_other}
+                    onChange={(e) => setForm((f) => ({ ...f, food_allergen_other: e.target.value }))}
+                    className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                    placeholder="e.g. Sesame, soy"
+                  />
+                </label>
+              </fieldset>
               <label className="flex items-start gap-2 rounded-lg bg-[var(--color-muted)] p-3 text-sm">
                 <input
                   type="checkbox"
@@ -610,8 +661,9 @@ export default function VendorPage({ params }: Props) {
                   className="mt-0.5"
                 />
                 <span>
-                  I declare this food has been stored and handled safely, is safe to eat when collected, is given
-                  free of charge, and the details above are correct.
+                  {form.price === ""
+                    ? "I declare this food has been stored and handled safely, is safe to eat when collected, is given free of charge, and the details above are correct."
+                    : "I declare this food has been stored and handled safely, is safe to eat when collected, and the details above are correct."}
                 </span>
               </label>
             </div>

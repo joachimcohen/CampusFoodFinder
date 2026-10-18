@@ -222,7 +222,8 @@ function CollectPass({ listing, pass }: { listing: ListingWithRelations; pass: S
       </div>
       {listing.food_safety_enabled && (eatWithin || listing.food_reheat_instructions) && (
         <p className="text-sm">
-          <strong>Remember:</strong> {[eatWithin, listing.food_reheat_instructions].filter(Boolean).join(". ")}
+          <strong>Remember:</strong>{" "}
+          {[eatWithin, ...(listing.food_reheat_instructions ?? "").split("\n")].filter(Boolean).join(". ")}.
         </p>
       )}
       <p className="rounded-xl bg-[var(--color-muted)] p-3 text-xs leading-relaxed">
