@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findOrCreateTodaySession } from "@/lib/queue";
+import { checkAndClaim, recordAck, undoClaim } from "@/lib/claims";
+import type { Listing } from "@/lib/types";
 
 /**
  * No student accounts — anyone can call this. A random token is generated
@@ -8,6 +10,10 @@ import { findOrCreateTodaySession } from "@/lib/queue";
  * responsible for holding onto it (localStorage) to prove ownership of the
  * ticket on every later request, the same way a vendor's session cookie
  * proves ownership of their listings.
+ *
+ * When the listing has a food safety label, the student must have
+ * acknowledged the current version of it (labelVersion) before joining.
+ * The one-per-week limit is applied here too (lib/claims.ts).
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -19,6 +25,11 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  const { data: listing } = await supabase.from("listings").select("*").eq("id", listingId).maybeSingle();
+  if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const typed = listing as Listing;
+
   const session = await findOrCreateTodaySession(supabase, listingId);
   if ("error" in session) {
     return NextResponse.json({ error: session.error }, { status: 400 });
@@ -42,6 +53,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const claim = await checkAndClaim(supabase, typed, {
+    deviceId: body?.deviceId,
+    labelVersion: body?.labelVersion,
+  });
+  if ("error" in claim) {
+    return NextResponse.json({ error: claim.error, code: claim.code }, { status: claim.status });
+  }
+
   const token = crypto.randomUUID();
   const { data: entry, error } = await supabase
     .from("queue_entries")
@@ -53,7 +72,23 @@ export async function POST(req: NextRequest) {
     .select("id, joined_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await undoClaim(supabase, claim.claimId);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-  return NextResponse.json({ ticketId: entry.id, token, sessionId: session.id }, { status: 201 });
+  let ack: { acknowledgedAt: string } | null = null;
+  if (typed.food_safety_enabled) {
+    ack = await recordAck(supabase, typed, entry.id);
+  }
+
+  return NextResponse.json(
+    {
+      ticketId: entry.id,
+      token,
+      sessionId: session.id,
+      acknowledgedAt: ack?.acknowledgedAt ?? null,
+    },
+    { status: 201 }
+  );
 }

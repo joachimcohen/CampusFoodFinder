@@ -205,6 +205,39 @@ export function getStartsLabel(listing: ListingWithRelations, now: Date = new Da
   return `Starts ${WEEKDAY_LABELS[startParts.weekday]} at ${clock}`;
 }
 
+type SoldOutFields = Pick<ListingWithRelations, "sold_out_at" | "sold_out_visible_hours" | "schedule_type">;
+
+/**
+ * "none": available as normal. "showing": sold out and still shown (greyed,
+ * no claiming) for sold_out_visible_hours. "hidden": a one-time listing whose
+ * sold-out display window has passed. A recurring listing goes back to
+ * "none" after the window, so next week's session isn't stuck as sold out.
+ */
+export function soldOutState(listing: SoldOutFields, now: Date = new Date()): "none" | "showing" | "hidden" {
+  if (!listing.sold_out_at) return "none";
+  const visibleUntil = new Date(listing.sold_out_at).getTime() + (listing.sold_out_visible_hours ?? 12) * 3_600_000;
+  if (now.getTime() < visibleUntil) return "showing";
+  return listing.schedule_type === "recurring" ? "none" : "hidden";
+}
+
+/** The Monday (Melbourne date, YYYY-MM-DD) of the week `now` falls in. Weekly limits reset at Monday 12am Melbourne time. */
+export function melbourneWeekStart(now: Date = new Date()): string {
+  const { weekday, dateStr } = getMelbourneParts(now);
+  const daysSinceMonday = WEEKDAYS.indexOf(weekday);
+  const midnightUtc = new Date(`${dateStr}T00:00:00Z`).getTime();
+  return new Date(midnightUtc - daysSinceMonday * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** "Eat within 6 hours" style copy, or null when the vendor didn't set one. */
+export function eatWithinLabel(hours: number | null): string | null {
+  if (!hours) return null;
+  if (hours % 24 === 0) {
+    const days = hours / 24;
+    return `Eat within ${days} day${days === 1 ? "" : "s"}`;
+  }
+  return `Eat within ${hours} hour${hours === 1 ? "" : "s"}`;
+}
+
 export function formatPrice(price: number | null): string {
   if (price === null || price === undefined) return "FREE";
   return `$${price.toFixed(2)}`;

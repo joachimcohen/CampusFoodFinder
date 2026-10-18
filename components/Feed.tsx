@@ -9,6 +9,7 @@ import {
   isComingUp,
   isHappeningNow,
   isRecurringInScope,
+  soldOutState,
   weeklyRecurringSortKey,
 } from "@/lib/listings";
 import { subscribeToPush } from "@/lib/push-client";
@@ -41,13 +42,24 @@ export default function Feed({
     return () => clearInterval(id);
   }, []);
 
-  const filtered = useMemo(() => {
+  const matching = useMemo(() => {
     return initialListings.filter((l) => {
       if (campusSlug !== "all" && l.campus.slug !== campusSlug) return false;
       if (foodType !== "all" && l.food_type !== foodType) return false;
       return true;
     });
   }, [initialListings, campusSlug, foodType]);
+
+  // Sold-out listings leave the normal sections and sit in their own greyed
+  // "Sold out" section for the vendor's display window (12h by default).
+  const filtered = useMemo(() => matching.filter((l) => soldOutState(l, now) === "none"), [matching, now]);
+  const soldOut = useMemo(
+    () =>
+      matching
+        .filter((l) => soldOutState(l, now) === "showing")
+        .sort((a, b) => new Date(b.sold_out_at!).getTime() - new Date(a.sold_out_at!).getTime()),
+    [matching, now]
+  );
 
   const happeningNow = useMemo(
     () =>
@@ -73,7 +85,8 @@ export default function Feed({
     [filtered, now]
   );
 
-  const isEmpty = happeningNow.length === 0 && comingUp.length === 0 && weeklyRecurring.length === 0;
+  const isEmpty =
+    happeningNow.length === 0 && comingUp.length === 0 && weeklyRecurring.length === 0 && soldOut.length === 0;
   const [notifStatus, setNotifStatus] = useState<"idle" | "requesting" | "enabled" | "unavailable">("idle");
 
   async function enableNotifications() {
@@ -167,11 +180,22 @@ export default function Feed({
             )}
 
             {weeklyRecurring.length > 0 && (
-              <section>
+              <section className="mb-8">
                 <h2 className="mb-3 text-lg font-bold">Weekly &amp; Recurring</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {weeklyRecurring.map((l) => (
                     <ListingCard key={l.id} listing={l} mode="weekly" />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {soldOut.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-lg font-bold text-[var(--color-foreground)]/70">Sold out</h2>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {soldOut.map((l) => (
+                    <ListingCard key={l.id} listing={l} mode="sold-out" />
                   ))}
                 </div>
               </section>

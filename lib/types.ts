@@ -73,10 +73,30 @@ export interface Listing {
   queue_served_message: string | null;
   queue_waiting_message_url: string | null;
   queue_served_message_url: string | null;
+  food_safety_enabled: boolean;
+  food_storage: FoodStorage | null;
+  food_eat_within_hours: number | null;
+  food_reheat_instructions: string | null;
+  food_allergens: string | null;
+  food_donor_declared_at: string | null;
+  food_label_version: number;
+  sold_out_at: string | null;
+  sold_out_visible_hours: number;
+  limit_one_per_week: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
+
+export type FoodStorage = "fridge" | "freezer" | "shelf_stable";
+
+export const FOOD_STORAGE_LABELS: Record<FoodStorage, string> = {
+  fridge: "Keep in the fridge",
+  freezer: "Keep in the freezer",
+  shelf_stable: "No fridge needed",
+};
+
+export const FOOD_STORAGES: FoodStorage[] = ["fridge", "freezer", "shelf_stable"];
 
 export interface ListingWithRelations extends Listing {
   vendor: Pick<Vendor, "id" | "name" | "slug" | "location">;

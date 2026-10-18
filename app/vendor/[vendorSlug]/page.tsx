@@ -1,8 +1,9 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import type { DietaryTag, FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
-import { DIETARY_TAGS, DIETARY_TAG_LABELS, FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
+import type { DietaryTag, FoodStorage, FoodType, Listing, ScheduleType, Weekday } from "@/lib/types";
+import { DIETARY_TAGS, DIETARY_TAG_LABELS, FOOD_STORAGES, FOOD_STORAGE_LABELS, FOOD_TYPE_LABELS, WEEKDAYS } from "@/lib/types";
+import { soldOutState } from "@/lib/listings";
 import VendorQueueManager from "@/components/VendorQueueManager";
 
 type Props = { params: Promise<{ vendorSlug: string }> };
@@ -31,6 +32,13 @@ const emptyForm = {
   queue_served_message: "",
   queue_waiting_message_url: "",
   queue_served_message_url: "",
+  food_safety_enabled: false,
+  food_storage: "fridge" as FoodStorage,
+  food_eat_within_hours: "",
+  food_reheat_instructions: "",
+  food_allergens: "",
+  food_donor_declaration: false,
+  limit_one_per_week: false,
 };
 
 export default function VendorPage({ params }: Props) {
@@ -152,6 +160,14 @@ export default function VendorPage({ params }: Props) {
       queue_served_message: form.queue_enabled ? form.queue_served_message || null : null,
       queue_waiting_message_url: form.queue_enabled ? form.queue_waiting_message_url || null : null,
       queue_served_message_url: form.queue_enabled ? form.queue_served_message_url || null : null,
+      food_safety_enabled: form.food_safety_enabled,
+      food_storage: form.food_safety_enabled ? form.food_storage : null,
+      food_eat_within_hours:
+        form.food_safety_enabled && form.food_eat_within_hours !== "" ? Number(form.food_eat_within_hours) : null,
+      food_reheat_instructions: form.food_safety_enabled ? form.food_reheat_instructions || null : null,
+      food_allergens: form.food_safety_enabled ? form.food_allergens || null : null,
+      food_donor_declaration: form.food_safety_enabled && form.food_donor_declaration,
+      limit_one_per_week: form.limit_one_per_week,
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -176,6 +192,19 @@ export default function VendorPage({ params }: Props) {
       headers: { "Content-Type": "application/json", "x-vendor-slug": vendorSlug },
       body: JSON.stringify({ is_active }),
     });
+    loadListings();
+  }
+
+  async function patchListing(id: string, body: Record<string, unknown>) {
+    const res = await fetch(`/api/vendor/listings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-vendor-slug": vendorSlug },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const resBody = await res.json().catch(() => ({}));
+      alert(resBody.error ?? "Could not update the listing.");
+    }
     loadListings();
   }
 
@@ -509,6 +538,99 @@ export default function VendorPage({ params }: Props) {
           )}
         </div>
 
+
+        <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.food_safety_enabled}
+              onChange={(e) => setForm((f) => ({ ...f, food_safety_enabled: e.target.checked }))}
+            />
+            Add a food safety label (storage, reheating, eat-by)
+          </label>
+          {form.food_safety_enabled && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-[var(--color-foreground)]/70">
+                Students must read and tick this label before they can join the queue or collect. It also
+                records that you passed on storage and time-limit details when donating.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1 text-sm font-medium">
+                  Storage
+                  <select
+                    value={form.food_storage}
+                    onChange={(e) => setForm((f) => ({ ...f, food_storage: e.target.value as FoodStorage }))}
+                    className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                  >
+                    {FOOD_STORAGES.map((st) => (
+                      <option key={st} value={st}>
+                        {FOOD_STORAGE_LABELS[st]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium">
+                  Eat within (hours of collecting)
+                  <input
+                    type="number"
+                    min={1}
+                    max={168}
+                    value={form.food_eat_within_hours}
+                    onChange={(e) => setForm((f) => ({ ...f, food_eat_within_hours: e.target.value }))}
+                    className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                    placeholder="e.g. 6"
+                  />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                Reheating instructions (optional)
+                <textarea
+                  value={form.food_reheat_instructions}
+                  onChange={(e) => setForm((f) => ({ ...f, food_reheat_instructions: e.target.value }))}
+                  className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2"
+                  rows={2}
+                  placeholder="e.g. Reheat once only, until steaming hot all the way through"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                Contains / allergens (optional)
+                <input
+                  value={form.food_allergens}
+                  onChange={(e) => setForm((f) => ({ ...f, food_allergens: e.target.value }))}
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                  placeholder="e.g. Dairy, nuts, gluten"
+                />
+              </label>
+              <label className="flex items-start gap-2 rounded-lg bg-[var(--color-muted)] p-3 text-sm">
+                <input
+                  type="checkbox"
+                  required
+                  checked={form.food_donor_declaration}
+                  onChange={(e) => setForm((f) => ({ ...f, food_donor_declaration: e.target.checked }))}
+                  className="mt-0.5"
+                />
+                <span>
+                  I declare this food has been stored and handled safely, is safe to eat when collected, is given
+                  free of charge, and the details above are correct.
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
+          <span className="text-sm font-medium">Collection limit (optional)</span>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.limit_one_per_week}
+              onChange={(e) => setForm((f) => ({ ...f, limit_one_per_week: e.target.checked }))}
+              className="mt-0.5"
+            />
+            <span>One per student per week (resets Monday 12am). Matched to the student&apos;s device, not to them.</span>
+          </label>
+        </div>
+
         {formError && <p className="text-sm text-[var(--color-destructive)]">{formError}</p>}
 
         <button
@@ -522,12 +644,12 @@ export default function VendorPage({ params }: Props) {
 
       <section className="mt-8">
         <h2 className="mb-2 font-bold">Active ({activeListings.length})</h2>
-        <ListingRows listings={activeListings} onToggle={toggleActive} onDelete={removeListing} vendorSlug={vendorSlug} />
+        <ListingRows listings={activeListings} onToggle={toggleActive} onDelete={removeListing} onPatch={patchListing} vendorSlug={vendorSlug} />
       </section>
 
       <section className="mt-8">
         <h2 className="mb-2 font-bold text-[var(--color-foreground)]/60">Inactive / expired ({inactiveListings.length})</h2>
-        <ListingRows listings={inactiveListings} onToggle={toggleActive} onDelete={removeListing} vendorSlug={vendorSlug} />
+        <ListingRows listings={inactiveListings} onToggle={toggleActive} onDelete={removeListing} onPatch={patchListing} vendorSlug={vendorSlug} />
       </section>
     </main>
   );
@@ -537,11 +659,13 @@ function ListingRows({
   listings,
   onToggle,
   onDelete,
+  onPatch,
   vendorSlug,
 }: {
   listings: Listing[];
   onToggle: (id: string, is_active: boolean) => void;
   onDelete: (id: string) => void;
+  onPatch: (id: string, body: Record<string, unknown>) => void;
   vendorSlug: string;
 }) {
   if (listings.length === 0) {
@@ -555,8 +679,40 @@ function ListingRows({
             <div>
               <p className="font-semibold">{l.title}</p>
               <p className="text-xs text-[var(--color-foreground)]/60">{FOOD_TYPE_LABELS[l.food_type]}</p>
+              {soldOutState(l) === "showing" && (
+                <p className="text-xs font-semibold text-[var(--color-foreground)]/80">
+                  Sold out · shown to students for {l.sold_out_visible_hours}h from{" "}
+                  {new Date(l.sold_out_at!).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}
+                </p>
+              )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              {l.is_active &&
+                (soldOutState(l) === "showing" ? (
+                  <>
+                    <button
+                      onClick={() => onPatch(l.id, { sold_out: false })}
+                      className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
+                    >
+                      Undo sold out
+                    </button>
+                    {l.sold_out_visible_hours < 72 && (
+                      <button
+                        onClick={() => onPatch(l.id, { extend_sold_out: true })}
+                        className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
+                      >
+                        Show 12h longer
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => onPatch(l.id, { sold_out: true })}
+                    className="min-h-11 rounded-lg border border-[var(--color-foreground)] px-3 text-sm font-medium"
+                  >
+                    Mark sold out
+                  </button>
+                ))}
               <button
                 onClick={() => onToggle(l.id, !l.is_active)}
                 className="min-h-11 rounded-lg border border-[var(--color-border)] px-3 text-sm font-medium"
