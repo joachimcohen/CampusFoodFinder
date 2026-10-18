@@ -98,6 +98,16 @@ export const FOOD_STORAGE_LABELS: Record<FoodStorage, string> = {
 
 export const FOOD_STORAGES: FoodStorage[] = ["fridge", "freezer", "shelf_stable"];
 
+/** Tick-box reheating options on the vendor form. Ticked ones are saved one per line. */
+export const REHEAT_OPTIONS = [
+  "Reheat until piping hot all the way through",
+  "Stir halfway, then reheat again",
+  "Only reheat once",
+] as const;
+
+/** Tick-box allergen options on the vendor form, shown to students under "May contain". */
+export const ALLERGEN_OPTIONS = ["Nuts", "Dairy", "Fish", "Eggs", "Gluten"] as const;
+
 export interface ListingWithRelations extends Listing {
   vendor: Pick<Vendor, "id" | "name" | "slug" | "location">;
   campus: Pick<Campus, "id" | "name" | "slug">;

@@ -9,6 +9,24 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
+export type NotificationState = "unsupported" | "default" | "granted" | "denied";
+
+/** Whether this browser can do push notifications, and whether the student has already allowed or blocked them. */
+export function notificationState(): NotificationState {
+  if (typeof window === "undefined") return "unsupported";
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return "unsupported";
+  return Notification.permission as NotificationState;
+}
+
+/** Waits for the service worker, but gives up after a few seconds rather than hanging. */
+function readyWithTimeout(ms: number): Promise<ServiceWorkerRegistration | null> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 /**
  * Best-effort push subscribe: requests permission, subscribes via the
  * service worker, and registers the subscription server-side. Returns the
@@ -27,7 +45,10 @@ export async function subscribeToPush(): Promise<string | null> {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return null;
 
-    const registration = await navigator.serviceWorker.ready;
+    // navigator.serviceWorker.ready never resolves if the worker failed to
+    // register, so cap the wait instead of leaving the student hanging.
+    const registration = await readyWithTimeout(5000);
+    if (!registration) return null;
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({

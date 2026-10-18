@@ -5,7 +5,7 @@ import { eatWithinLabel } from "@/lib/listings";
 
 type LabelFields = Pick<
   Listing,
-  "food_storage" | "food_eat_within_hours" | "food_reheat_instructions" | "food_allergens"
+  "food_storage" | "food_eat_within_hours" | "food_reheat_instructions" | "food_allergens" | "price"
 >;
 
 /** The vendor's storage, eat-within, reheating and allergen details, as one readable block. */
@@ -33,18 +33,31 @@ export default function FoodSafetyLabel({ listing, vendorName }: { listing: Labe
         {listing.food_reheat_instructions && (
           <div>
             <dt className="text-xs text-[var(--color-foreground)]/70">Reheating</dt>
-            <dd className="whitespace-pre-line font-semibold">{listing.food_reheat_instructions}</dd>
+            <dd>
+              {/* One instruction per line, shown as a list so each reads separately. */}
+              <ul className="list-disc pl-5 font-semibold">
+                {listing.food_reheat_instructions
+                  .split("\n")
+                  .filter((line) => line.trim())
+                  .map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+              </ul>
+            </dd>
           </div>
         )}
         {listing.food_allergens && (
           <div>
-            <dt className="text-xs text-[var(--color-foreground)]/70">Contains</dt>
+            <dt className="text-xs text-[var(--color-foreground)]/70">May contain</dt>
             <dd className="font-semibold">{listing.food_allergens}</dd>
           </div>
         )}
         <p className="text-xs leading-snug text-[var(--color-foreground)]/70">
-          These steps help you avoid getting sick. The vendor ({vendorName}) has confirmed this food was handled
-          safely and is safe to eat when you collect it.
+          These steps help you avoid getting sick.
+          {/* The donor confirmation only applies to food given away free (the
+              Wrongs Act 1958 Part VIB protection covers free food only). */}
+          {listing.price === null &&
+            ` The vendor (${vendorName}) has confirmed this food was handled safely and is safe to eat when you collect it.`}
         </p>
       </dl>
     </section>

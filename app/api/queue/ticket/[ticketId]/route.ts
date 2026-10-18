@@ -60,3 +60,41 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     waitMinutesLabel: formatWaitLabel(waitMinutes),
   });
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Links a ticket to the device's push subscription after joining, so the
+ * "you're up" notification can reach it. Joining no longer waits on push
+ * set-up, which could take several seconds or sit on a permission prompt.
+ * Same ownership proof as GET: the ticket's own token.
+ */
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
+  const { ticketId } = await params;
+  const token = req.headers.get("x-queue-token");
+  if (!token) return NextResponse.json({ error: "Missing ticket token." }, { status: 401 });
+
+  const body = await req.json().catch(() => null);
+  const pushSubscriptionId = typeof body?.pushSubscriptionId === "string" ? body.pushSubscriptionId : null;
+  if (!pushSubscriptionId || !UUID.test(pushSubscriptionId)) {
+    return NextResponse.json({ error: "Invalid notification subscription." }, { status: 400 });
+  }
+
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("queue_entries")
+    .select("id, anonymous_token")
+    .eq("id", ticketId)
+    .maybeSingle();
+  if (!entry || entry.anonymous_token !== token) {
+    return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+  }
+
+  const { error } = await supabase
+    .from("queue_entries")
+    .update({ push_subscription_id: pushSubscriptionId })
+    .eq("id", ticketId);
+  // A bad subscription id fails the foreign key check; treat that as invalid input.
+  if (error) return NextResponse.json({ error: "Could not turn on notifications." }, { status: 400 });
+  return NextResponse.json({ ok: true });
+}
