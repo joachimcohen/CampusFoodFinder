@@ -27,13 +27,13 @@ function writeConfirmed() {
 }
 
 /**
- * "This Food Finder is for Deakin students only." Shown once per phone,
+ * "This Food Finder is for Deakin students only." Shown once per device (phone or computer),
  * before the feed or a queue page. Two ticks: that they're a Deakin student,
  * and that they understand how donated food works in Victoria (the vendor
  * hands it over safe, then looking after it is up to them).
  *
  * We trust students to be honest: the number is only format-checked here on
- * the phone and is never sent to the server or saved. All the phone
+ * the device and is never sent to the server or saved. All the device
  * remembers is that the check was done.
  */
 export default function StudentGate({ children }: { children: React.ReactNode }) {
@@ -67,7 +67,7 @@ export default function StudentGate({ children }: { children: React.ReactNode })
       </div>
       <h1 className="text-2xl font-extrabold leading-tight">This Food Finder is for Deakin students only</h1>
       <p className="text-[15px] leading-relaxed">
-        Pop in your student number once and you&apos;re set. This phone will remember you&apos;ve done it, so you
+        Pop in your student number once and you&apos;re set. This device will remember you&apos;ve done it, so you
         won&apos;t be asked again.
       </p>
 
@@ -135,7 +135,7 @@ export default function StudentGate({ children }: { children: React.ReactNode })
 
         <div className="flex-1" />
         <p className="text-xs leading-relaxed text-[var(--color-foreground)]/70">
-          Your number is only checked on this phone. It&apos;s never sent to us or saved anywhere.
+          Your number is only checked on this device. It&apos;s never sent to us or saved anywhere.
         </p>
         <button
           type="submit"

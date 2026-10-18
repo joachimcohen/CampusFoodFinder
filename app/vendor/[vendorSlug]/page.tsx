@@ -627,7 +627,7 @@ export default function VendorPage({ params }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, limit_one_per_week: e.target.checked }))}
               className="mt-0.5"
             />
-            <span>One per student per week (resets Monday 12am). Matched to the student&apos;s phone, not to them.</span>
+            <span>One per student per week (resets Monday 12am). Matched to the student&apos;s device, not to them.</span>
           </label>
         </div>
 

@@ -55,7 +55,7 @@ export async function checkAndClaim(
 
   const deviceId = typeof req.deviceId === "string" && DEVICE_ID_PATTERN.test(req.deviceId) ? req.deviceId : null;
   if (!deviceId) {
-    return { error: "We couldn't check this phone. Please refresh and try again.", status: 400 };
+    return { error: "We couldn't check this device. Please refresh and try again.", status: 400 };
   }
 
   const { data, error } = await supabase
