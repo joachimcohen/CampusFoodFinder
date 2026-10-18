@@ -26,11 +26,15 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient();
 
-  const { data: listing } = await supabase.from("listings").select("*").eq("id", listingId).maybeSingle();
+  // Independent look-ups, so run them at the same time rather than one
+  // after the other: each trip to the database adds a little wait.
+  const [{ data: listing }, session] = await Promise.all([
+    supabase.from("listings").select("*").eq("id", listingId).maybeSingle(),
+    findOrCreateTodaySession(supabase, listingId),
+  ]);
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
   const typed = listing as Listing;
 
-  const session = await findOrCreateTodaySession(supabase, listingId);
   if ("error" in session) {
     return NextResponse.json({ error: session.error }, { status: 400 });
   }

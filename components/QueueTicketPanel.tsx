@@ -33,7 +33,8 @@ export default function QueueTicketPanel({
   listing: ListingWithRelations;
   compact?: boolean;
 }) {
-  const { ticket, status, ticketNumber, position, waitLabel, joining, error, join } = useQueueTicket(listing.id);
+  const { ticket, status, ticketNumber, position, waitLabel, joining, error, join, notify, enableNotifications } =
+    useQueueTicket(listing.id);
   const [dialog, setDialog] = useState<DialogMode | null>(null);
 
   // A food safety label must be read and ticked in the pop-up before
@@ -55,6 +56,33 @@ export default function QueueTicketPanel({
       Food safety &amp; reheating
     </button>
   );
+
+  // Offered after joining, from its own tap (some phones only allow the
+  // permission prompt from a tap). Joining never waits on it.
+  const notifyControl =
+    status === "waiting" || status === "called" ? (
+      notify === "default" ? (
+        <button
+          type="button"
+          onClick={enableNotifications}
+          className={
+            compact
+              ? "mt-1 inline-flex min-h-8 w-fit items-center rounded-full border border-[var(--color-accent)] px-3 text-xs font-semibold text-[var(--color-accent)]"
+              : "mt-2 min-h-11 rounded-xl border border-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent)]"
+          }
+        >
+          Notify me when it&apos;s my turn
+        </button>
+      ) : notify === "working" ? (
+        <p className="mt-1 text-xs text-[var(--color-foreground)]/70">Turning on notifications…</p>
+      ) : notify === "on" ? (
+        <p className="mt-1 text-xs text-[var(--color-foreground)]/70">Notifications on. We&apos;ll let you know.</p>
+      ) : notify === "denied" ? (
+        <p className="mt-1 text-xs text-[var(--color-foreground)]/70">
+          Notifications are blocked on this device, so keep this page open to see your turn.
+        </p>
+      ) : null
+    ) : null;
 
   if (!ticket && soldOutState(listing) !== "none") {
     return (
@@ -141,6 +169,7 @@ export default function QueueTicketPanel({
             {joining ? "Rejoining…" : "Rejoin queue"}
           </button>
         )}
+        {notifyControl}
         {dialogEl}
       </div>
     );
@@ -196,6 +225,7 @@ export default function QueueTicketPanel({
           {joining ? "Rejoining…" : "Rejoin queue"}
         </button>
       )}
+      {notifyControl}
       <div className="mt-3 flex w-full flex-col">{labelButton}</div>
       {dialogEl}
     </div>

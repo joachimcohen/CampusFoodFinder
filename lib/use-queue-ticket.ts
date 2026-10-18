@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { QueueEntryStatus } from "@/lib/types";
-import { subscribeToPush } from "@/lib/push-client";
+import { notificationState, subscribeToPush, type NotificationState } from "@/lib/push-client";
 import { getDeviceId } from "@/lib/collect-client";
 
 export type Ticket = { ticketId: string; token: string };
@@ -87,6 +87,30 @@ export function useQueueTicket(listingId: string) {
     };
   }, [ticket, poll]);
 
+  const [notify, setNotify] = useState<NotificationState | "on" | "working">("unsupported");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read the browser's permission once on mount
+    setNotify(notificationState());
+  }, []);
+
+  /** Links this ticket to the device's notifications, so the "you're up" alert can reach it. */
+  const attachNotifications = useCallback(async (current: Ticket): Promise<boolean> => {
+    setNotify("working");
+    const pushSubscriptionId = await subscribeToPush();
+    if (!pushSubscriptionId) {
+      setNotify(notificationState());
+      return false;
+    }
+    const res = await fetch(`/api/queue/ticket/${current.ticketId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-queue-token": current.token },
+      body: JSON.stringify({ pushSubscriptionId }),
+    }).catch(() => null);
+    setNotify(res?.ok ? "on" : notificationState());
+    return !!res?.ok;
+  }, []);
+
   /**
    * Joins the queue. `answers` carries the acknowledged label version when
    * the listing has a food safety label. Resolves to an error
@@ -96,16 +120,14 @@ export function useQueueTicket(listingId: string) {
     async (answers?: { labelVersion: number | null }): Promise<string | null> => {
       setJoining(true);
       setError(null);
-      // Best-effort — if permission is denied or push isn't supported, this
-      // resolves to null and the student still joins normally, falling back
-      // to the on-page polling to see their status update.
-      const pushSubscriptionId = await subscribeToPush();
+      // Join straight away. Notifications are set up afterwards (see
+      // attachNotifications below), so the student never waits on a
+      // permission prompt or the phone's push service just to get a ticket.
       const res = await fetch("/api/queue/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           listingId,
-          pushSubscriptionId,
           deviceId: getDeviceId(),
           labelVersion: answers?.labelVersion ?? null,
         }),
@@ -124,10 +146,18 @@ export function useQueueTicket(listingId: string) {
       setPosition(null);
       setWaitLabel(null);
       setTicket(newTicket);
+      // Already allowed notifications before? Hook them up quietly in the
+      // background. Otherwise the ticket shows a "Notify me" button.
+      if (notificationState() === "granted") void attachNotifications(newTicket);
       return null;
     },
-    [listingId]
+    [listingId, attachNotifications]
   );
 
-  return { ticket, status, ticketNumber, position, waitLabel, joining, error, join };
+  /** For the "Notify me when it's my turn" button: must run from a tap, as some phones require. */
+  const enableNotifications = useCallback(() => {
+    if (ticket) void attachNotifications(ticket);
+  }, [ticket, attachNotifications]);
+
+  return { ticket, status, ticketNumber, position, waitLabel, joining, error, join, notify, enableNotifications };
 }
