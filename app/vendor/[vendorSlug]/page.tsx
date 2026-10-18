@@ -661,9 +661,8 @@ export default function VendorPage({ params }: Props) {
                   className="mt-0.5"
                 />
                 <span>
-                  {form.price === ""
-                    ? "I declare this food has been stored and handled safely, is safe to eat when collected, is given free of charge, and the details above are correct."
-                    : "I declare this food has been stored and handled safely, is safe to eat when collected, and the details above are correct."}
+                  I declare this food has been stored and handled safely, is safe to eat when collected, and the details
+                  above are correct.
                 </span>
               </label>
             </div>

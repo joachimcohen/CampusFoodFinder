@@ -101,7 +101,7 @@ export default function StudentGate({ children }: { children: React.ReactNode })
             About the food
           </h2>
           <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed">
-            <li>Free food here is given in good faith by the vendor listed on it.</li>
+            <li>Each listing comes from the vendor named on it.</li>
             <li>
               The vendor makes sure it&apos;s safe when they hand it over, and tells you how to store it and when to
               eat it by.
