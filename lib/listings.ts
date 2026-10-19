@@ -238,6 +238,22 @@ export function eatWithinLabel(hours: number | null): string | null {
   return `Eat within ${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
+/** "$5 OFF" / "20% OFF" for a discount voucher, or "" when not set. */
+export function voucherDiscountLabel(
+  listing: Pick<ListingWithRelations, "voucher_discount_type" | "voucher_discount_value">
+): string {
+  const value = listing.voucher_discount_value;
+  if (!listing.voucher_discount_type || value === null || value === undefined) return "";
+  const n = Number(value);
+  if (listing.voucher_discount_type === "percent") return `${Number.isInteger(n) ? n : n.toFixed(1)}% OFF`;
+  return `$${Number.isInteger(n) ? n : n.toFixed(2)} OFF`;
+}
+
+/** How many vouchers are still available on a voucher listing. */
+export function vouchersLeft(listing: Pick<ListingWithRelations, "voucher_total" | "voucher_claimed_count">): number {
+  return Math.max(0, (listing.voucher_total ?? 0) - (listing.voucher_claimed_count ?? 0));
+}
+
 export function formatPrice(price: number | null): string {
   if (price === null || price === undefined) return "FREE";
   return `$${price.toFixed(2)}`;

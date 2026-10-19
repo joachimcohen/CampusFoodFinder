@@ -1,4 +1,4 @@
-import type { DietaryTag, FoodStorage, FoodType, ScheduleType, Weekday } from "@/lib/types";
+import type { DietaryTag, FoodStorage, FoodType, ScheduleType, VoucherDiscountType, Weekday } from "@/lib/types";
 import { DIETARY_TAGS, FOOD_STORAGES, WEEKDAYS } from "@/lib/types";
 
 const FOOD_TYPES: FoodType[] = [
@@ -7,6 +7,7 @@ const FOOD_TYPES: FoodType[] = [
   "daily_special",
   "recurring_event",
   "one_off_event",
+  "discount_voucher",
 ];
 const SCHEDULE_TYPES: ScheduleType[] = ["one_time", "recurring"];
 
@@ -40,6 +41,12 @@ export interface ListingInput {
   food_allergens: string | null;
   food_donor_declared_at: string | null;
   limit_one_per_week: boolean;
+  voucher_discount_type: VoucherDiscountType | null;
+  voucher_discount_value: number | null;
+  voucher_total: number | null;
+  voucher_conditions: string | null;
+  voucher_reserved_message: string | null;
+  voucher_used_message: string | null;
 }
 
 /** A bare `http(s)://` prefix check — enough to stop obviously-broken input (javascript:, plain text) without a full URL-parsing dependency. */
@@ -188,6 +195,59 @@ export function validateFoodSafety(
   };
 }
 
+const NO_VOUCHER = {
+  voucher_discount_type: null,
+  voucher_discount_value: null,
+  voucher_total: null,
+  voucher_conditions: null,
+  voucher_reserved_message: null,
+  voucher_used_message: null,
+} as const;
+
+/**
+ * Validates the discount voucher fields. Only used when the food type is
+ * "discount_voucher": a dollar or percentage discount, and how many
+ * numbered vouchers are available in total for the listing.
+ */
+export function validateVoucher(
+  b: Record<string, unknown>
+):
+  | { error: string }
+  | {
+      voucher_discount_type: VoucherDiscountType | null;
+      voucher_discount_value: number | null;
+      voucher_total: number | null;
+      voucher_conditions: string | null;
+      voucher_reserved_message: string | null;
+      voucher_used_message: string | null;
+    } {
+  if (b.food_type !== "discount_voucher") return { ...NO_VOUCHER };
+
+  if (b.voucher_discount_type !== "amount" && b.voucher_discount_type !== "percent") {
+    return { error: "Choose whether the voucher is a dollar amount or a percentage." };
+  }
+  const value = Number(b.voucher_discount_value);
+  if (!Number.isFinite(value) || value <= 0) {
+    return { error: "Enter how much the voucher takes off." };
+  }
+  if (b.voucher_discount_type === "percent" && value > 100) {
+    return { error: "A percentage discount can't be more than 100%." };
+  }
+  const total = Number(b.voucher_total);
+  if (!Number.isInteger(total) || total < 1 || total > 100000) {
+    return { error: "Enter how many vouchers are available, as a whole number of at least 1." };
+  }
+
+  return {
+    voucher_discount_type: b.voucher_discount_type,
+    voucher_discount_value: Math.round(value * 100) / 100,
+    voucher_total: total,
+    voucher_conditions: optionalText(b.voucher_conditions, 200),
+    voucher_reserved_message: optionalText(b.voucher_reserved_message, 300),
+    voucher_used_message: optionalText(b.voucher_used_message, 300),
+  };
+}
+
 /** Validates a raw listing payload from the client. Returns an error string, or null if valid. */
 export function validateListingInput(body: unknown): { input: ListingInput } | { error: string } {
   if (typeof body !== "object" || body === null) return { error: "Invalid request body." };
@@ -259,6 +319,9 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
   const foodSafety = validateFoodSafety(b);
   if ("error" in foodSafety) return foodSafety;
 
+  const voucher = validateVoucher(b);
+  if ("error" in voucher) return voucher;
+
   return {
     input: {
       food_type: b.food_type as FoodType,
@@ -278,6 +341,9 @@ export function validateListingInput(body: unknown): { input: ListingInput } | {
       dietary_tags,
       ...queueConfig,
       ...foodSafety,
+      ...voucher,
+      // A voucher's value is its discount, not a price.
+      ...(b.food_type === "discount_voucher" ? { price: null } : {}),
       limit_one_per_week: b.limit_one_per_week === true,
     },
   };

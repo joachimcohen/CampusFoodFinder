@@ -14,6 +14,7 @@ import {
 } from "@/lib/types";
 import { soldOutState } from "@/lib/listings";
 import VendorQueueManager from "@/components/VendorQueueManager";
+import VendorVoucherManager from "@/components/VendorVoucherManager";
 
 type Props = { params: Promise<{ vendorSlug: string }> };
 
@@ -50,6 +51,12 @@ const emptyForm = {
   food_allergen_other: "",
   food_donor_declaration: false,
   limit_one_per_week: false,
+  voucher_discount_type: "amount" as "amount" | "percent",
+  voucher_discount_value: "",
+  voucher_total: "",
+  voucher_conditions: "",
+  voucher_reserved_message: "",
+  voucher_used_message: "",
 };
 
 /** Adds or removes one tick-box value. */
@@ -66,6 +73,7 @@ export default function VendorPage({ params }: Props) {
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const isVoucherForm = form.food_type === "discount_voucher";
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -190,6 +198,17 @@ export default function VendorPage({ params }: Props) {
         : null,
       food_donor_declaration: form.food_safety_enabled && form.food_donor_declaration,
       limit_one_per_week: form.limit_one_per_week,
+      ...(form.food_type === "discount_voucher"
+        ? {
+            queue_enabled: false,
+            voucher_discount_type: form.voucher_discount_type,
+            voucher_discount_value: form.voucher_discount_value === "" ? null : Number(form.voucher_discount_value),
+            voucher_total: form.voucher_total === "" ? null : Number(form.voucher_total),
+            voucher_conditions: form.voucher_conditions || null,
+            voucher_reserved_message: form.voucher_reserved_message || null,
+            voucher_used_message: form.voucher_used_message || null,
+          }
+        : {}),
     };
 
     const res = await fetch("/api/vendor/listings", {
@@ -332,6 +351,7 @@ export default function VendorPage({ params }: Props) {
             </select>
           </label>
 
+          {!isVoucherForm && (
           <label className="flex flex-col gap-1 text-sm font-medium">
             Price ($, blank = free)
             <input
@@ -348,7 +368,103 @@ export default function VendorPage({ params }: Props) {
               className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
             />
           </label>
+          )}
         </div>
+
+        {isVoucherForm && (
+          <fieldset className="flex flex-col gap-3 rounded-xl border-2 border-[var(--color-food-voucher-badge)] bg-white p-3">
+            <legend className="px-1 text-sm font-bold">Voucher details</legend>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Discount type</span>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["amount", "Dollar amount ($)"],
+                    ["percent", "Percentage (%)"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label
+                    key={value}
+                    className={`flex min-h-11 flex-1 items-center gap-2 rounded-lg border px-3 text-sm ${
+                      form.voucher_discount_type === value
+                        ? "border-2 border-[var(--color-food-voucher-badge)] font-semibold"
+                        : "border-[var(--color-border)]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="voucher_discount_type"
+                      checked={form.voucher_discount_type === value}
+                      onChange={() => setForm((f) => ({ ...f, voucher_discount_type: value }))}
+                      className="h-5 w-5"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                {form.voucher_discount_type === "percent" ? "Discount (% off)" : "Discount ($ off)"}
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  value={form.voucher_discount_value}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(v)) setForm((f) => ({ ...f, voucher_discount_value: v }));
+                  }}
+                  placeholder={form.voucher_discount_type === "percent" ? "e.g. 20" : "e.g. 5.00"}
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                Vouchers available
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={form.voucher_total}
+                  onChange={(e) => setForm((f) => ({ ...f, voucher_total: e.target.value }))}
+                  placeholder="e.g. 300"
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+                />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Conditions (optional)
+              <input
+                value={form.voucher_conditions}
+                onChange={(e) => setForm((f) => ({ ...f, voucher_conditions: e.target.value }))}
+                placeholder="e.g. Any hot meal at the counter"
+                className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Message when a student reserves (optional)
+              <input
+                value={form.voucher_reserved_message}
+                onChange={(e) => setForm((f) => ({ ...f, voucher_reserved_message: e.target.value }))}
+                placeholder="e.g. Show this at the Campus Kitchen counter before you pay"
+                className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Message once it&apos;s used (optional)
+              <input
+                value={form.voucher_used_message}
+                onChange={(e) => setForm((f) => ({ ...f, voucher_used_message: e.target.value }))}
+                placeholder="e.g. Enjoy your meal! Check the feed for more deals"
+                className="min-h-11 rounded-lg border border-[var(--color-border)] bg-white px-3"
+              />
+            </label>
+            <p className="text-xs text-[var(--color-foreground)]/70">
+              Each voucher is numbered and can be used once. Tick &quot;One per student per week&quot; below to limit
+              how often a student can get one.
+            </p>
+          </fieldset>
+        )}
 
         <label className="flex flex-col gap-1 text-sm font-medium">
           Photo (optional)
@@ -473,6 +589,7 @@ export default function VendorPage({ params }: Props) {
           </div>
         )}
 
+        {!isVoucherForm && (
         <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
           <label className="flex items-center gap-2 text-sm font-medium">
             <input
@@ -559,6 +676,7 @@ export default function VendorPage({ params }: Props) {
             </div>
           )}
         </div>
+        )}
 
 
         <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-3">
@@ -778,7 +896,11 @@ function ListingRows({
               </button>
             </div>
           </div>
-          {l.queue_enabled && <VendorQueueManager listingId={l.id} vendorSlug={vendorSlug} />}
+          {l.food_type === "discount_voucher" ? (
+            <VendorVoucherManager listingId={l.id} vendorSlug={vendorSlug} />
+          ) : (
+            l.queue_enabled && <VendorQueueManager listingId={l.id} vendorSlug={vendorSlug} />
+          )}
         </li>
       ))}
     </ul>

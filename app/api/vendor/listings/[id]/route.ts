@@ -77,6 +77,26 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     update.sold_out_visible_hours = extended;
   }
 
+  // "Add more vouchers": raise the total. It can't go below what's already claimed.
+  if ("voucher_total" in body) {
+    const total = Number(body.voucher_total);
+    const { data: current } = await supabase
+      .from("listings")
+      .select("food_type, voucher_claimed_count")
+      .eq("id", id)
+      .maybeSingle();
+    if (current?.food_type !== "discount_voucher") {
+      return NextResponse.json({ error: "Only voucher listings have a voucher total." }, { status: 400 });
+    }
+    if (!Number.isInteger(total) || total < (current.voucher_claimed_count ?? 0) || total > 100000) {
+      return NextResponse.json(
+        { error: `The total must be a whole number, at least the ${current.voucher_claimed_count} already claimed.` },
+        { status: 400 }
+      );
+    }
+    update.voucher_total = total;
+  }
+
   if (QUEUE_FIELD_NAMES.some((name) => name in body)) {
     const queueConfig = validateQueueConfig(body as Record<string, unknown>);
     if ("error" in queueConfig) {
