@@ -1,19 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Gift, Percent, Star, Repeat, PartyPopper, Navigation, ChevronDown, ChevronUp, ShieldCheck } from "lucide-react";
+import {
+  Gift,
+  Percent,
+  Star,
+  Repeat,
+  PartyPopper,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+  Ticket,
+} from "lucide-react";
 import type { ListingWithRelations } from "@/lib/types";
 import { DIETARY_TAG_LABELS, FOOD_TYPE_COLORS } from "@/lib/types";
 import FoodTypeBadge from "./FoodTypeBadge";
 import QueueTicketPanel from "./QueueTicketPanel";
 import FoodSafetyDialog, { type DialogMode } from "./FoodSafetyDialog";
+import VoucherDialog from "./VoucherDialog";
+import { loadVoucher, type SavedVoucher } from "@/lib/voucher-client";
 import {
   formatPrice,
   getRecurrenceScheduleLabel,
   getStartsLabel,
   getTimeRemainingLabel,
   melbourneWeekStart,
+  voucherDiscountLabel,
+  vouchersLeft,
 } from "@/lib/listings";
 import { loadPass, type SavedPass } from "@/lib/collect-client";
 
@@ -32,6 +47,7 @@ const FOOD_TYPE_ICONS = {
   daily_special: Star,
   recurring_event: Repeat,
   one_off_event: PartyPopper,
+  discount_voucher: Ticket,
 } as const;
 
 export default function ListingCard({
@@ -59,9 +75,24 @@ export default function ListingCard({
   }
 
   const soldOut = mode === "sold-out";
+
+  // Discount vouchers have their own reserve-and-show flow instead of the
+  // queue or walk-up pass.
+  const isVoucher = listing.food_type === "discount_voucher";
+  const [voucher, setVoucher] = useState<SavedVoucher | null>(null);
+  const [voucherOpen, setVoucherOpen] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time localStorage read on mount
+    if (isVoucher) setVoucher(loadVoucher(listing.id));
+  }, [isVoucher, listing.id]);
+  const onVoucherChange = useCallback((v: SavedVoucher) => setVoucher(v), []);
+  const left = isVoucher ? vouchersLeft(listing) : 0;
+  const allClaimed = isVoucher && left === 0;
+  const holdingUnused = !!voucher && !voucher.usedAt;
   // Walk-up listings (no queue) with a label or a weekly limit get a
   // "Collect" button that produces a show-this-screen pass.
-  const walkUpGate = !listing.queue_enabled && (listing.food_safety_enabled || listing.limit_one_per_week);
+  const walkUpGate =
+    !isVoucher && !listing.queue_enabled && (listing.food_safety_enabled || listing.limit_one_per_week);
   const collectedThisWeek = listing.limit_one_per_week && passIsCurrent;
   const Icon = FOOD_TYPE_ICONS[listing.food_type];
   const timeLabel = soldOut
@@ -131,9 +162,13 @@ export default function ListingCard({
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <FoodTypeBadge foodType={listing.food_type} />
-          {soldOut ? (
+          {soldOut || allClaimed ? (
             <span className="whitespace-nowrap rounded-full bg-[var(--color-foreground)] px-2 py-0.5 text-xs font-bold text-white">
-              Sold out
+              {allClaimed && !soldOut ? "All claimed" : "Sold out"}
+            </span>
+          ) : isVoucher ? (
+            <span className="whitespace-nowrap text-base font-extrabold text-[var(--color-food-voucher-badge)]">
+              {voucherDiscountLabel(listing)}
             </span>
           ) : (
             <span className="whitespace-nowrap text-sm font-bold text-[var(--color-foreground)]">
@@ -210,7 +245,53 @@ export default function ListingCard({
             Food safety &amp; reheating
           </button>
         )}
-        {listing.queue_enabled && !soldOut && <QueueTicketPanel listing={listing} compact />}
+        {isVoucher && (
+          <div className="mt-1 flex flex-col gap-1.5">
+            {listing.voucher_conditions && <p className="text-xs text-[var(--color-foreground)]/80">{listing.voucher_conditions}</p>}
+            <div
+              className="h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--color-food-voucher)_20%,white)]"
+              role="progressbar"
+              aria-label="Vouchers claimed"
+              aria-valuemin={0}
+              aria-valuemax={listing.voucher_total ?? 0}
+              aria-valuenow={listing.voucher_claimed_count}
+            >
+              <div
+                className="h-full bg-[var(--color-food-voucher-badge)]"
+                style={{
+                  width: `${Math.min(100, ((listing.voucher_claimed_count ?? 0) / Math.max(1, listing.voucher_total ?? 1)) * 100)}%`,
+                }}
+              />
+            </div>
+            <p className="text-xs font-semibold">
+              {left} of {listing.voucher_total} left{listing.limit_one_per_week ? " · One per week" : ""}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {voucher && (
+                <button
+                  type="button"
+                  onClick={() => setVoucherOpen(true)}
+                  className="inline-flex min-h-8 w-fit items-center rounded-full bg-[var(--color-accent)] px-3 text-xs font-semibold text-white"
+                >
+                  {voucher.usedAt ? `Voucher #${voucher.number} used` : "Show my voucher"}
+                </button>
+              )}
+              {!holdingUnused && !allClaimed && !soldOut && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVoucher(null);
+                    setVoucherOpen(true);
+                  }}
+                  className="inline-flex min-h-8 w-fit items-center rounded-full bg-[var(--color-primary)] px-3 text-xs font-semibold text-[var(--color-on-primary)]"
+                >
+                  {voucher ? "Get another voucher" : "Get voucher"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {!isVoucher && listing.queue_enabled && !soldOut && <QueueTicketPanel listing={listing} compact />}
         {walkUpGate && (!soldOut || passIsCurrent) && (
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {passIsCurrent && (
@@ -239,6 +320,17 @@ export default function ListingCard({
           <p className="text-xs text-[var(--color-foreground)]/70">All gone for now. Thanks for checking!</p>
         )}
       </div>
+      {voucherOpen && (
+        <VoucherDialog
+          listing={listing}
+          initialVoucher={voucher}
+          onClose={() => {
+            setVoucherOpen(false);
+            setVoucher(loadVoucher(listing.id));
+          }}
+          onChange={onVoucherChange}
+        />
+      )}
       {dialog && (
         <FoodSafetyDialog
           listing={listing}

@@ -3,7 +3,8 @@ export type FoodType =
   | "discounted"
   | "daily_special"
   | "recurring_event"
-  | "one_off_event";
+  | "one_off_event"
+  | "discount_voucher";
 
 export type ScheduleType = "one_time" | "recurring";
 
@@ -83,12 +84,21 @@ export interface Listing {
   sold_out_at: string | null;
   sold_out_visible_hours: number;
   limit_one_per_week: boolean;
+  voucher_discount_type: VoucherDiscountType | null;
+  voucher_discount_value: number | null;
+  voucher_total: number | null;
+  voucher_claimed_count: number;
+  voucher_conditions: string | null;
+  voucher_reserved_message: string | null;
+  voucher_used_message: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export type FoodStorage = "fridge" | "freezer" | "shelf_stable";
+
+export type VoucherDiscountType = "amount" | "percent";
 
 export const FOOD_STORAGE_LABELS: Record<FoodStorage, string> = {
   fridge: "Keep in the fridge",
@@ -137,6 +147,7 @@ export const FOOD_TYPE_LABELS: Record<FoodType, string> = {
   daily_special: "Daily Special",
   recurring_event: "Recurring Event",
   one_off_event: "One-off Event",
+  discount_voucher: "Discount Voucher",
 };
 
 export const FOOD_TYPE_COLORS: Record<FoodType, string> = {
@@ -145,6 +156,7 @@ export const FOOD_TYPE_COLORS: Record<FoodType, string> = {
   daily_special: "var(--color-food-special)",
   recurring_event: "var(--color-food-recurring)",
   one_off_event: "var(--color-food-oneoff)",
+  discount_voucher: "var(--color-food-voucher)",
 };
 
 // Badge backgrounds need white text at ~12px to hit the 4.5:1 contrast ratio
@@ -158,6 +170,7 @@ export const FOOD_TYPE_BADGE_COLORS: Record<FoodType, string> = {
   daily_special: "var(--color-food-special-badge)",
   recurring_event: "var(--color-food-recurring-badge)",
   one_off_event: "var(--color-food-oneoff-badge)",
+  discount_voucher: "var(--color-food-voucher-badge)",
 };
 
 export const WEEKDAYS: Weekday[] = [

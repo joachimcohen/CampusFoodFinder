@@ -27,12 +27,14 @@
   --color-food-special: #6658d0;
   --color-food-recurring: #a556d2;
   --color-food-oneoff: #d454bf;
+  --color-food-voucher: #e06b9c;
 
   --color-food-free-badge: #2a8187; /* 4.60:1 */
   --color-food-discounted-badge: #3d75c5; /* 4.61:1 */
   --color-food-special-badge: #4536be; /* 8.34:1 */
   --color-food-recurring-badge: #7c2da8; /* 7.51:1 */
   --color-food-oneoff-badge: #922580; /* 7.50:1 — exact brand purple */
+  --color-food-voucher-badge: #b8336a; /* 5.65:1, raspberry, distinct from the purples */
 
   --color-status-active: #2a8187;
   --color-status-expired: #94a3b8;
@@ -56,12 +58,14 @@
   --color-food-special: var(--color-food-special);
   --color-food-recurring: var(--color-food-recurring);
   --color-food-oneoff: var(--color-food-oneoff);
+  --color-food-voucher: var(--color-food-voucher);
 
   --color-food-free-badge: var(--color-food-free-badge);
   --color-food-discounted-badge: var(--color-food-discounted-badge);
   --color-food-special-badge: var(--color-food-special-badge);
   --color-food-recurring-badge: var(--color-food-recurring-badge);
   --color-food-oneoff-badge: var(--color-food-oneoff-badge);
+  --color-food-voucher-badge: var(--color-food-voucher-badge);
 
   --color-status-active: var(--color-status-active);
   --color-status-expired: var(--color-status-expired);
